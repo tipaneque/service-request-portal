@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Allows the pipeline to be re-run by hand from the Actions tab.
+  workflow_dispatch:
+
+# A new push to the same branch cancels the run that is already in flight.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Lint, typecheck, test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Current LTS plus the next line, so an upcoming Node release cannot
+        # break the build unnoticed.
+        node-version: [20.x, 22.x]
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        # `npm ci` installs exactly what package-lock.json pins - reproducible
+        # and faster than `npm install`.
+        run: npm ci
+
+      - name: Verify the API types still match the OpenAPI document
+        # Guards against a contract change that was never regenerated: the
+        # committed types must equal what the spec produces today.
+        run: |
+          npm run generate:api
+          git diff --exit-code src/api/schema.ts
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm run test:coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-node-${{ matrix.node-version }}
+          path: coverage/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload production build
+        # Only one copy is needed; the Node version does not change the output.
+        if: matrix.node-version == '22.x'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7

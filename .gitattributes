@@ -1,0 +1,12 @@
+# Normalise line endings so the repository is identical on Windows, macOS and Linux.
+* text=auto eol=lf
+
+# Binary assets
+*.pdf binary
+*.png binary
+*.jpg binary
+*.ico binary
+
+# Generated from the OpenAPI document; keep it out of diff review noise.
+src/api/schema.ts linguist-generated=true
+package-lock.json linguist-generated=true
