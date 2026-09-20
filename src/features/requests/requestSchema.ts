@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { PRIORITIES } from '@/api/types'
+import { PRIORITIES } from '@/domain/serviceRequests'
 
 /**
  * Client-side mirror of the `CreateServiceRequest` schema in the OpenAPI

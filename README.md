@@ -45,6 +45,7 @@ A few decisions worth highlighting:
 - **The contract drives the types.** `src/api/schema.ts` is generated from the OpenAPI document; nothing is hand-typed from the spec, and CI fails if the two drift apart.
 - **The status state machine is respected.** Only the transitions the contract permits are offered, and the `version` last read is echoed back so concurrent edits are caught as `409` rather than silently overwriting someone's work.
 - **The app runs with no backend.** Mock Service Worker serves a stateful implementation of the whole contract, so the UI can be run and reviewed immediately.
+- **Caches are session-scoped.** Signing out or changing OIDC subject synchronously replaces the query client, so cached customer data cannot cross an authentication boundary.
 
 ### State handling
 
@@ -89,7 +90,7 @@ Every screen distinguishes the states the brief calls for:
 src/
 ├── api/            Contract layer: generated types, fetch wrapper, endpoints, query hooks
 │   ├── schema.ts       generated from the OpenAPI document - never edited by hand
-│   ├── types.ts        domain aliases, labels, and the allowed status transitions
+│   ├── types.ts        domain type aliases over the generated contract
 │   ├── ApiError.ts     normalised error carrying the RFC 7807 problem document
 │   ├── http.ts         fetch wrapper: bearer token, problem parsing, cancellation
 │   ├── serviceRequests.ts  one function per operationId
@@ -98,6 +99,7 @@ src/
 ├── auth/           Provider-agnostic auth context, OIDC adapter, mock provider, route guard
 ├── components/     Presentational building blocks (alerts, badges, fields, pagination…)
 ├── config/         Environment parsing and validation
+├── domain/         Runtime vocabulary, labels and service-request workflow rules
 ├── features/
 │   └── requests/   The service-request feature: list, detail, create, filters, status panel
 ├── lib/            Small utilities (date formatting, debounced callback)
@@ -109,9 +111,11 @@ src/
 
 **Layering.** Components never talk to `fetch` and never import the OIDC library: they use hooks from `api/queries.ts` and the `AuthContext`. That keeps two decisions swappable - the HTTP client and the identity library - and it is what lets the test suite run the real component tree against a mock transport.
 
-**Dependency direction.** `features` → `api` → `config`, and `features` → `auth` → `api`. Nothing in `api/` imports from `features/`.
+**Dependency direction.** `features` → `domain`/`api`, `domain` → `api`, and `features` → `auth` → `api`. Nothing in `api/` imports from a feature or from the domain layer.
 
-**Authentication seam.** `AuthContext` exposes `{ isAuthenticated, isLoading, error, user, signIn, signOut }`. Two implementations satisfy it: `OidcAuthAdapter` (real provider) and `MockAuthProvider` (local development and tests). The rest of the app cannot tell them apart.
+**Authentication seam.** `AuthContext` exposes `{ isAuthenticated, isLoading, error, user, signIn, signOut }`. Two implementations satisfy it: `OidcAuthAdapter` (real provider) and `MockAuthProvider` (local development and tests). The requested internal route is carried through the OIDC state and restored after the callback.
+
+**Session isolation.** The query-client boundary is keyed by the authenticated OIDC subject. Logout and account changes create an empty cache synchronously, before a protected route can render for the next user.
 
 **Token plumbing.** The access token is published to a module-level store *during render*, not from an effect. Effects run child-first, so registering the token in an effect would let a screen fire its first request before the token was available - and get a `401`. `apiFetch` reads the store at request time, which also means a silently renewed token is picked up without a re-render.
 
@@ -196,6 +200,7 @@ All variables are documented in [`.env.example`](.env.example) and validated at 
 | `VITE_API_BASE_URL` | `/api` | Base URL of the Service Request API, without a trailing slash. |
 | `VITE_ENABLE_API_MOCKS` | `true` | Serve the API from Mock Service Worker in the browser. |
 | `VITE_AUTH_MODE` | `mock` | `oidc` for a real provider, `mock` for the local demo session. |
+| `VITE_ALLOW_MOCK_AUTH_IN_PRODUCTION` | `false` | Explicit escape hatch for a published demo. Production otherwise displays a blocking configuration error. |
 | `VITE_OIDC_AUTHORITY` | – | Issuer URL. **Required** when `VITE_AUTH_MODE=oidc`. |
 | `VITE_OIDC_CLIENT_ID` | – | Public client id. **Required** when `VITE_AUTH_MODE=oidc`. |
 | `VITE_OIDC_REDIRECT_URI` | `<origin>/auth/callback` | Must match the provider registration exactly. |
@@ -213,12 +218,12 @@ The OpenAPI document describes no server, so the repository ships a complete moc
 
 - **`seed.ts`** – 42 deterministic service requests, spanning every status and priority, so filters and pagination have something meaningful to act on and results are reproducible.
 - **`db.ts`** – an in-memory store implementing the behaviour the contract promises: search across title and requester name, status/priority filtering, all six sort expressions, pagination, version-based optimistic concurrency and the status state machine.
-- **`handlers.ts`** – the four operations, returning real `application/problem+json` documents for `400`, `401`, `404`, `409`, `422` and `500`, including a `WWW-Authenticate` challenge on `401` and a `Location` header on `201`. Requests without a bearer token are rejected, so the token plumbing is genuinely exercised.
+- **`handlers.ts`** – the four operations, strict request/query validation (including `additionalProperties: false` and every length bound), and real `application/problem+json` documents for `400`, `401`, `404`, `409`, `422` and `500`. Requests without a bearer token are rejected, so the token plumbing is genuinely exercised.
 - **`browser.ts` / `server.ts`** – the same handlers wired to a Service Worker in the browser and to `setupServer` in Vitest.
 
 Why MSW rather than a stubbed API module: the interception happens at the network boundary, so the code under test is the real `fetch` wrapper, the real error mapping and the real query hooks. The mock is a stand-in for the *server*, not for the application's own layers.
 
-The worker starts before the first render (`src/main.tsx`), so no request escapes it. Turn it off with `VITE_ENABLE_API_MOCKS=false` to talk to a real API. Mock data lives in memory and resets on reload.
+The worker starts before the first render (`src/main.tsx`), so no request escapes it. A registration failure produces an actionable startup screen instead of a blank page. Turn it off with `VITE_ENABLE_API_MOCKS=false` to talk to a real API. Mock data lives in memory and resets on reload.
 
 ---
 
@@ -242,22 +247,27 @@ The worker starts before the first render (`src/main.tsx`), so no request escape
 
 ## Testing strategy
 
-**58 tests across 8 files.** The suite is written against user-visible behaviour: queries go through accessible roles, labels and text, never through CSS classes or component internals, so a refactor that preserves behaviour does not break the tests.
+**74 tests across 14 files.** The suite is written against user-visible behaviour: queries go through accessible roles, labels and text, never through CSS classes or component internals, so a refactor that preserves behaviour does not break the tests.
 
 | File | What it protects |
 | --- | --- |
 | `src/api/http.test.ts` | The transport contract: the bearer token is attached (and omitted when signed out), empty query parameters are dropped, problem documents become `ApiError` with their detail/field errors/trace id, a `401` notifies the auth layer, and network failures and `5xx` are classified as retryable while `4xx` are not. |
 | `src/mocks/db.test.ts` | The mock server's own logic - pagination defaults, case-insensitive search across both fields, combined filters, all sort directions, server-assigned fields on creation, version increments, stale-version conflicts and refused transitions. |
+| `src/mocks/handlers.test.ts` | Strict OAS3 boundary validation: unknown query/body properties, maximum field lengths and the status-note type. |
 | `src/features/requests/RequestListPage.test.tsx` | Listing, totals and page indicators, status filtering, debounced search by title and by requester, paging, filters restored from the query string, sorting, the empty state and its escape hatch, a `500` rendered as a problem document with a working retry, and a `401` surfaced to the user. |
 | `src/features/requests/RequestDetailPage.test.tsx` | Detail rendering, that only contract-allowed transitions are offered, a successful update and the resulting version bump, that the last-read `version` is echoed (and a `409` is explained), a refused `422` transition, the terminal `CLOSED` state, the not-found state, and retry after a failure. |
 | `src/features/requests/NewRequestPage.test.tsx` | Client-side validation per field, `aria-invalid`/`aria-describedby` wiring, that an invalid form never reaches the API, that the payload contains exactly the contract's fields (no client-assigned `id`/`status`/timestamps), server `422` messages mapped back onto inputs, a page-level alert for other failures, and an end-to-end create against the mock API. |
 | `src/auth/RequireAuth.test.tsx` | The guard redirects unauthenticated visitors, admits them after sign-in, and the access token is published only while a session exists and does not survive a fresh tab. |
+| `src/auth/OidcAuthAdapter.test.tsx`, `oidcConfig.test.ts` | OIDC identity/token mapping, provider logout, safe return-route state and rejection of external redirects. |
+| `src/pages/SignInPage.test.tsx` | The originally requested route is passed into the authentication flow. |
+| `src/pages/AuthCallbackPage.test.tsx` | Callback progress/error states and restoration of the route carried through OIDC. |
+| `src/App.test.tsx` | API cache data is destroyed across logout and the next login. |
 | `src/components/layout/AppLayout.test.tsx` | The signed-in identity is shown, the skip link targets the main region, and sign-out clears both the session and the token. |
 | `src/lib/format.test.ts` | Unit selection and rounding in relative dates, and that a malformed timestamp is passed through instead of rendering "Invalid Date". |
 
-**What is deliberately not mocked:** the router, the query client, the auth providers and the components themselves are all real in these tests - only the network is replaced. The gap that leaves is the OIDC redirect handshake itself, which cannot be exercised without a provider; the adapter around it is thin by design and the contract it satisfies (`AuthContext`) is covered through the mock implementation.
+Most component tests use the real router, query client, auth boundary and component tree; only the network is replaced. Focused OIDC tests mock the external library at its adapter boundary. The remaining gap is the browser-to-provider redirect and token exchange, which requires a live identity provider.
 
-Coverage is around **80% of statements**, concentrated where mistakes are expensive: the API layer sits above 91% and the mock store above 97%. Composition roots (`main.tsx`, `App.tsx`, the route table) are not covered directly - they are exercised indirectly and asserting on them would test the framework rather than this application.
+Coverage is **85.64% of statements** and **87.33% of lines**, concentrated where mistakes are expensive: the OIDC adapter/configuration has full statement coverage, the API layer is above 91%, and the mock store is above 97%. The browser bootstrap and live provider handshake remain outside the component-test boundary.
 
 ---
 
@@ -272,7 +282,7 @@ The job runs on Node **20.x** and **22.x** in parallel (`fail-fast: false`, so o
 3. **Lint** – ESLint over the repository.
 4. **Typecheck** – `tsc` with no emit.
 5. **Test** – the full suite with coverage; the report is uploaded as an artifact even when tests fail.
-6. **Build** – the production build, uploaded as an artifact from the Node 22 job.
+6. **Build** – a production build with the secure OIDC branch enabled, uploaded as an artifact from the Node 22 job.
 
 Deployment is intentionally not included: the target environment is unknown, and the build artifact plus the environment-variable contract above is what any host would need.
 
@@ -283,6 +293,8 @@ Deployment is intentionally not included: the target environment is unknown, and
 - **Authorization Code flow with PKCE, public client.** No implicit flow, no client secret. A secret in a browser bundle is not a secret, which is why the client is registered as public and PKCE protects the code exchange.
 - **Tokens in `sessionStorage`, scoped to the tab.** They are cleared when the tab closes and are never written to `localStorage` or to a script-readable cookie. This is a deliberate trade-off: it keeps the blast radius of an XSS smaller than `localStorage` would, while avoiding the complexity of a token-relaying backend. A deployment with stricter requirements should move to a BFF that keeps tokens server-side in an `HttpOnly` cookie.
 - **The authorization code never lingers.** `onSigninCallback` strips `code` and `state` from the address bar once the exchange completes, so they do not end up in history or in a shared URL.
+- **No cross-session API cache.** The query client is replaced on logout and OIDC subject changes, preventing cached customer data from being shown to a later user in the same tab.
+- **Mock auth is blocked in production.** A build using mock authentication renders a blocking configuration error unless the demo-only escape hatch was explicitly enabled.
 - **Sign-out ends the provider session too** (`signoutRedirect`), not just the local one - otherwise the next sign-in is silently re-authenticated and "sign out" is an illusion.
 - **The client is not the security boundary.** The route guard is a usability measure; the API rejects unauthenticated calls regardless of what the browser renders. The mock API enforces this too, rejecting any request without a bearer token.
 - **Expired sessions are handled, not ignored.** A `401` from any call clears the local session and the stored token, and the guard sends the user back to the provider.
@@ -306,8 +318,8 @@ Deployment is intentionally not included: the target environment is unknown, and
 ## Known limitations
 
 - **No real backend.** The OpenAPI document specifies no server, so the mock is the reference implementation. Data lives in memory and resets on reload. Pointing at a real API is a two-variable change.
-- **The OIDC redirect handshake is untested automatically.** It needs a live provider. The adapter around it is deliberately thin, and the `AuthContext` contract it implements is covered through the mock provider. An end-to-end test against a containerised Keycloak would close this gap.
-- **`VITE_AUTH_MODE=mock` must never ship.** It is a development and test convenience with no real authentication behind it. In a real deployment this would be enforced by the pipeline rather than by documentation.
+- **The live OIDC redirect/token exchange is not exercised automatically.** The adapter, state restoration and callback configuration have unit coverage, but an end-to-end test against a containerised Keycloak would cover the external handshake itself.
+- **Mock authentication is development-only.** Production blocks it by default. `VITE_ALLOW_MOCK_AUTH_IN_PRODUCTION=true` exists solely for an intentionally public demo and must not be used for a real portal.
 - **MSW is bundled in the production build.** It is behind a dynamic import, so it is only downloaded when `VITE_ENABLE_API_MOCKS=true` - but the chunk is still emitted. A deployment that never mocks should strip it from the build.
 - **No end-to-end browser tests.** The suite covers the component tree against a mock network; Playwright against a real provider and API would be the next layer.
 - **The status note is write-only.** The contract accepts a `note` with a transition but exposes no history endpoint, so previous notes cannot be displayed.

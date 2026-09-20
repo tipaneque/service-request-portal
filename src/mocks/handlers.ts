@@ -8,20 +8,28 @@
 import { HttpResponse, http, type HttpResponseResolver } from 'msw'
 import { env } from '@/config/env'
 import {
-  PRIORITIES,
-  SORT_OPTIONS,
-  STATUSES,
   type ProblemDetails,
   type ServiceRequestPriority,
   type ServiceRequestStatus,
   type SortOption,
   type ValidationProblemDetails,
 } from '@/api/types'
+import { PRIORITIES, SORT_OPTIONS, STATUSES } from '@/domain/serviceRequests'
 import { applyStatusUpdate, findRequest, insertRequest, queryRequests } from './db'
 
 const BASE = env.apiBaseUrl
 
 const PROBLEM_HEADERS = { 'Content-Type': 'application/problem+json' }
+const LIST_QUERY_PARAMETERS = new Set(['search', 'status', 'priority', 'sort', 'page', 'pageSize'])
+const CREATE_PROPERTIES = new Set([
+  'title',
+  'description',
+  'category',
+  'priority',
+  'requesterName',
+  'requesterEmail',
+])
+const STATUS_PROPERTIES = new Set(['status', 'version', 'note'])
 
 let traceCounter = 0
 function traceId(): string {
@@ -57,6 +65,14 @@ function validationProblem(
     errors,
   }
   return HttpResponse.json(body, { status: 422, headers: PROBLEM_HEADERS })
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function unexpectedProperties(body: Record<string, unknown>, allowed: Set<string>): string[] {
+  return Object.keys(body).filter((key) => !allowed.has(key))
 }
 
 /**
@@ -105,6 +121,18 @@ const listRequests: HttpResponseResolver = async ({ request }) => {
   const rawPriority = url.searchParams.get('priority')
   const rawSort = url.searchParams.get('sort')
   const rawSearch = url.searchParams.get('search')
+
+  const unknownParameters = [...url.searchParams.keys()].filter(
+    (parameter) => !LIST_QUERY_PARAMETERS.has(parameter),
+  )
+  if (unknownParameters.length > 0) {
+    return problem(
+      400,
+      'Invalid request',
+      `Unknown query parameter '${unknownParameters[0]}'.`,
+      instance,
+    )
+  }
 
   const page = rawPage === null ? 1 : Number(rawPage)
   const pageSize = rawPageSize === null ? 10 : Number(rawPageSize)
@@ -182,6 +210,8 @@ function validateCreate(body: CreateBody): Record<string, string[]> {
 
   if (text(body.category).length < 2) {
     errors.category = ['Category must be at least 2 characters long.']
+  } else if (text(body.category).length > 50) {
+    errors.category = ['Category must not exceed 50 characters.']
   }
 
   if (!PRIORITIES.includes(body.priority as ServiceRequestPriority)) {
@@ -190,9 +220,13 @@ function validateCreate(body: CreateBody): Record<string, string[]> {
 
   if (text(body.requesterName).length < 2) {
     errors.requesterName = ['Requester name must be at least 2 characters long.']
+  } else if (text(body.requesterName).length > 100) {
+    errors.requesterName = ['Requester name must not exceed 100 characters.']
   }
 
-  if (!EMAIL_PATTERN.test(text(body.requesterEmail))) {
+  if (text(body.requesterEmail).length > 254) {
+    errors.requesterEmail = ['Email address must not exceed 254 characters.']
+  } else if (!EMAIL_PATTERN.test(text(body.requesterEmail))) {
     errors.requesterEmail = ['Enter a valid email address.']
   }
 
@@ -205,12 +239,21 @@ const createRequest: HttpResponseResolver = async ({ request }) => {
   const unauthorized = requireAuth(request, instance)
   if (unauthorized) return unauthorized
 
-  let body: CreateBody
+  let parsedBody: unknown
   try {
-    body = (await request.json()) as CreateBody
+    parsedBody = await request.json()
   } catch {
     return problem(400, 'Invalid request', 'The request body is not valid JSON.', instance)
   }
+
+  if (!isRecord(parsedBody)) {
+    return problem(400, 'Invalid request', 'The request body must be a JSON object.', instance)
+  }
+  const extras = unexpectedProperties(parsedBody, CREATE_PROPERTIES)
+  if (extras.length > 0) {
+    return problem(400, 'Invalid request', `Unknown field '${extras[0]}'.`, instance)
+  }
+  const body: CreateBody = parsedBody
 
   const errors = validateCreate(body)
   if (Object.keys(errors).length > 0) {
@@ -272,12 +315,21 @@ const patchStatus: HttpResponseResolver<{ requestId: string }> = async ({ reques
   const unauthorized = requireAuth(request, instance)
   if (unauthorized) return unauthorized
 
-  let body: StatusBody
+  let parsedBody: unknown
   try {
-    body = (await request.json()) as StatusBody
+    parsedBody = await request.json()
   } catch {
     return problem(400, 'Invalid request', 'The request body is not valid JSON.', instance)
   }
+
+  if (!isRecord(parsedBody)) {
+    return problem(400, 'Invalid request', 'The request body must be a JSON object.', instance)
+  }
+  const extras = unexpectedProperties(parsedBody, STATUS_PROPERTIES)
+  if (extras.length > 0) {
+    return problem(400, 'Invalid request', `Unknown field '${extras[0]}'.`, instance)
+  }
+  const body: StatusBody = parsedBody
 
   if (!STATUSES.includes(body.status as ServiceRequestStatus)) {
     return validationProblem('Validation failed', 'The submitted status is invalid.', instance, {
@@ -287,10 +339,17 @@ const patchStatus: HttpResponseResolver<{ requestId: string }> = async ({ reques
   if (typeof body.version !== 'number' || !Number.isInteger(body.version) || body.version < 1) {
     return problem(400, 'Invalid request', "Field 'version' must be a positive integer.", instance)
   }
-  if (typeof body.note === 'string' && body.note.length > 500) {
-    return validationProblem('Validation failed', 'The note is too long.', instance, {
-      note: ['Note must not exceed 500 characters.'],
-    })
+  if (body.note !== undefined) {
+    if (typeof body.note !== 'string') {
+      return validationProblem('Validation failed', 'The note must be text.', instance, {
+        note: ['Note must be a string.'],
+      })
+    }
+    if (body.note.length > 500) {
+      return validationProblem('Validation failed', 'The note is too long.', instance, {
+        note: ['Note must not exceed 500 characters.'],
+      })
+    }
   }
 
   await latency()

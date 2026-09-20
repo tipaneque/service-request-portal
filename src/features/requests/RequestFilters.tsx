@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import {
+  type ServiceRequestPriority,
+  type ServiceRequestStatus,
+  type SortOption,
+} from '@/api/types'
+import {
   PRIORITIES,
   PRIORITY_LABELS,
   SORT_LABELS,
   SORT_OPTIONS,
   STATUSES,
   STATUS_LABELS,
-  type ServiceRequestPriority,
-  type ServiceRequestStatus,
-  type SortOption,
-} from '@/api/types'
+} from '@/domain/serviceRequests'
 import { Field } from '@/components/Field'
 import { useDebouncedCallback } from '@/lib/useDebouncedCallback'
 import { PAGE_SIZE_OPTIONS, type RequestListFilters } from './useRequestListParams'
@@ -48,7 +50,7 @@ export function RequestFilters({
   }
 
   return (
-    <search className="filters">
+    <div className="filters" role="search" aria-label="Request filters">
       <div className="filters__row">
         <Field label="Search" hint="Matches the title or the requester name.">
           {(props) => (
@@ -178,6 +180,6 @@ export function RequestFilters({
           </select>
         </label>
       </div>
-    </search>
+    </div>
   )
 }

@@ -16,6 +16,7 @@ const envSchema = z.object({
   VITE_ENABLE_API_MOCKS: booleanFromString.default('true'),
 
   VITE_AUTH_MODE: z.enum(['oidc', 'mock']).default('mock'),
+  VITE_ALLOW_MOCK_AUTH_IN_PRODUCTION: booleanFromString.default('false'),
   VITE_OIDC_AUTHORITY: z.string().default(''),
   VITE_OIDC_CLIENT_ID: z.string().default(''),
   VITE_OIDC_REDIRECT_URI: z.string().default(''),
@@ -52,7 +53,12 @@ export const env = {
     postLogoutRedirectUri: raw.VITE_OIDC_POST_LOGOUT_REDIRECT_URI || window.location.origin,
     scope: raw.VITE_OIDC_SCOPE,
     audience: raw.VITE_OIDC_AUDIENCE,
+    mockAllowedInProduction: raw.VITE_ALLOW_MOCK_AUTH_IN_PRODUCTION,
   },
+  hasUnsafeProductionAuth:
+    import.meta.env.PROD &&
+    raw.VITE_AUTH_MODE === 'mock' &&
+    !raw.VITE_ALLOW_MOCK_AUTH_IN_PRODUCTION,
 } as const
 
 export type Env = typeof env

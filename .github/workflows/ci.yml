@@ -71,6 +71,13 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          # The artifact exercises the secure production branch. A real
+          # deployment must replace these values with its registered provider.
+          VITE_AUTH_MODE: oidc
+          VITE_ENABLE_API_MOCKS: "false"
+          VITE_OIDC_AUTHORITY: https://identity.example.test
+          VITE_OIDC_CLIENT_ID: service-request-portal-ci
 
       - name: Upload production build
         # Only one copy is needed; the Node version does not change the output.

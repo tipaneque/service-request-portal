@@ -19,6 +19,7 @@ export interface AuthContextValue {
   /** Sign-in/renewal failure, surfaced to the user as an auth error state. */
   error: Error | null
   user: AuthenticatedUser | null
-  signIn: () => Promise<void>
+  /** Starts sign-in and, where supported, returns to this internal route. */
+  signIn: (returnTo?: string) => Promise<void>
   signOut: () => Promise<void>
 }

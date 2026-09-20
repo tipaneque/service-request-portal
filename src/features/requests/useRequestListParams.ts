@@ -1,14 +1,12 @@
 import { useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
-  PRIORITIES,
-  SORT_OPTIONS,
-  STATUSES,
   type ListServiceRequestsQuery,
   type ServiceRequestPriority,
   type ServiceRequestStatus,
   type SortOption,
 } from '@/api/types'
+import { PRIORITIES, SORT_OPTIONS, STATUSES } from '@/domain/serviceRequests'
 
 export const DEFAULT_PAGE_SIZE = 10
 export const PAGE_SIZE_OPTIONS = [10, 20, 50] as const

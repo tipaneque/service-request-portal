@@ -1,6 +1,7 @@
 import { WebStorageStateStore } from 'oidc-client-ts'
 import type { AuthProviderProps } from 'react-oidc-context'
 import { env } from '@/config/env'
+import { normaliseReturnTo } from './returnTo'
 
 /**
  * OIDC client configuration.
@@ -30,8 +31,10 @@ export function buildOidcConfig(): AuthProviderProps {
     stateStore: new WebStorageStateStore({ store: window.sessionStorage }),
     // Strip `code`/`state` from the address bar once the callback is processed
     // so the authorization code never lingers in history or a shared URL.
-    onSigninCallback: () => {
-      window.history.replaceState({}, document.title, window.location.pathname)
+    onSigninCallback: (user) => {
+      const state = user?.state as { returnTo?: unknown } | undefined
+      const returnTo = normaliseReturnTo(state?.returnTo)
+      window.history.replaceState({}, document.title, returnTo)
     },
   }
 }

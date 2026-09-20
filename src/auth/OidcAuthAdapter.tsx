@@ -1,9 +1,10 @@
-import { useEffect, useMemo, type ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { useAuth as useOidcAuth } from 'react-oidc-context'
 import { setUnauthorizedHandler } from '@/api/http'
 import { AuthContext } from './AuthContext'
 import { setAccessToken } from './tokenStore'
 import type { AuthContextValue } from './types'
+import { normaliseReturnTo } from './returnTo'
 
 /**
  * Maps `react-oidc-context` state onto the application's `AuthContextValue`
@@ -17,14 +18,12 @@ export function OidcAuthAdapter({ children }: { children: ReactNode }) {
   // `react-oidc-context` re-renders with the new user. See `tokenStore`.
   setAccessToken(oidc.user?.access_token ?? null)
 
-  useEffect(() => {
-    setUnauthorizedHandler(() => {
-      // The API rejected the token: drop the local session so the guard sends
-      // the user back to the provider.
-      setAccessToken(null)
-      void oidc.removeUser()
-    })
-  }, [oidc])
+  // Register synchronously for the same reason as the token: a child query can
+  // start before parent effects run. The first 401 must still end the session.
+  setUnauthorizedHandler(() => {
+    setAccessToken(null)
+    void oidc.removeUser()
+  })
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -42,9 +41,9 @@ export function OidcAuthAdapter({ children }: { children: ReactNode }) {
             email: oidc.user.profile.email,
           }
         : null,
-      signIn: async () => {
+      signIn: async (returnTo?: string) => {
         await oidc.signinRedirect({
-          state: { returnTo: window.location.pathname + window.location.search },
+          state: { returnTo: normaliseReturnTo(returnTo) },
         })
       },
       signOut: async () => {

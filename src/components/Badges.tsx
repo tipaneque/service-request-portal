@@ -1,9 +1,5 @@
-import {
-  PRIORITY_LABELS,
-  STATUS_LABELS,
-  type ServiceRequestPriority,
-  type ServiceRequestStatus,
-} from '@/api/types'
+import type { ServiceRequestPriority, ServiceRequestStatus } from '@/api/types'
+import { PRIORITY_LABELS, STATUS_LABELS } from '@/domain/serviceRequests'
 
 /**
  * Status and priority are encoded with colour *and* text, never colour alone,

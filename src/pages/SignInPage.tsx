@@ -24,7 +24,7 @@ export function SignInPage() {
   const handleSignIn = async () => {
     setRedirectError(null)
     try {
-      await signIn()
+      await signIn(returnTo)
     } catch (cause) {
       setRedirectError(cause instanceof Error ? cause : new Error('Sign-in failed.'))
     }

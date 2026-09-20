@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { setUnauthorizedHandler } from '@/api/http'
 import { AuthContext } from './AuthContext'
 import { setAccessToken } from './tokenStore'
@@ -52,13 +52,11 @@ export function MockAuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false)
   }, [])
 
-  useEffect(() => {
-    setUnauthorizedHandler(() => {
-      void signOut()
-    })
-  }, [signOut])
+  setUnauthorizedHandler(() => {
+    void signOut()
+  })
 
-  const signIn = useCallback(async () => {
+  const signIn = useCallback(async (_returnTo?: string) => {
     setIsLoading(true)
     try {
       window.sessionStorage.setItem(STORAGE_KEY, 'active')

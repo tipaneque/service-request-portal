@@ -17,7 +17,9 @@ export function AuthCallbackPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/requests', { replace: true })
+      // `onSigninCallback` has already restored the safe path carried in the
+      // OIDC state. Ask the router to adopt that URL without losing it.
+      navigate(window.location.pathname + window.location.search, { replace: true })
     }
   }, [isAuthenticated, navigate])
 

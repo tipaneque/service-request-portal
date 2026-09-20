@@ -1,12 +1,10 @@
 import { useState } from 'react'
 import { useUpdateServiceRequestStatus } from '@/api/queries'
 import {
-  ALLOWED_TRANSITIONS,
-  STATUS_LABELS,
-  isTerminal,
   type ServiceRequest,
   type ServiceRequestStatus,
 } from '@/api/types'
+import { ALLOWED_TRANSITIONS, STATUS_LABELS, isTerminal } from '@/domain/serviceRequests'
 import { Alert, ApiErrorAlert } from '@/components/Alert'
 import { Field } from '@/components/Field'
 import { Spinner } from '@/components/Spinner'

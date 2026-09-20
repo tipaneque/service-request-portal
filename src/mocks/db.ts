@@ -6,7 +6,6 @@
  * is exercised against realistic responses instead of static fixtures.
  */
 import {
-  ALLOWED_TRANSITIONS,
   type CreateServiceRequest,
   type ListServiceRequestsQuery,
   type ServiceRequest,
@@ -21,6 +20,15 @@ const PRIORITY_ORDER: Record<ServiceRequestPriority, number> = {
   MEDIUM: 1,
   HIGH: 2,
   CRITICAL: 3,
+}
+
+// Kept independent from the UI transition map on purpose: contract tests must
+// be able to catch a client rule that drifts from server behaviour.
+const SERVER_TRANSITIONS: Record<ServiceRequestStatus, readonly ServiceRequestStatus[]> = {
+  OPEN: ['IN_PROGRESS', 'CLOSED'],
+  IN_PROGRESS: ['RESOLVED', 'OPEN'],
+  RESOLVED: ['CLOSED', 'IN_PROGRESS'],
+  CLOSED: [],
 }
 
 let requests: ServiceRequest[] = buildSeedRequests()
@@ -127,7 +135,7 @@ export function applyStatusUpdate(
     return { ok: false, reason: 'conflict', currentVersion: existing.version }
   }
 
-  if (!ALLOWED_TRANSITIONS[existing.status].includes(status)) {
+  if (!SERVER_TRANSITIONS[existing.status].includes(status)) {
     return { ok: false, reason: 'invalid-transition', from: existing.status }
   }
 
