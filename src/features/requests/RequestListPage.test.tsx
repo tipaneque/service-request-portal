@@ -2,7 +2,11 @@ import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { screen, waitFor, within } from '@testing-library/react'
 import { server } from '@/mocks/server'
-import { renderWithProviders, signIn } from '@/test/renderWithProviders'
+import {
+  renderWithProviders,
+  signIn,
+  type RenderWithProvidersResult,
+} from '@/test/renderWithProviders'
 import { RequestListPage } from './RequestListPage'
 
 const BASE = 'http://localhost/api'
@@ -22,6 +26,15 @@ async function renderList(route = '/requests') {
 
 function rows(): HTMLElement[] {
   return within(screen.getByRole('table')).getAllByRole('row')
+}
+
+/**
+ * The filter bar keeps the search field collapsed behind its icon, so a test
+ * that wants to type has to summon it first.
+ */
+async function openSearch(user: RenderWithProvidersResult['user']): Promise<HTMLElement> {
+  await user.click(screen.getByRole('button', { name: /Search requests/i }))
+  return screen.findByLabelText('Search')
 }
 
 describe('RequestListPage', () => {
@@ -61,7 +74,7 @@ describe('RequestListPage', () => {
   it('searches by title once the input settles', async () => {
     const { user } = await renderList()
 
-    await user.type(screen.getByLabelText('Search'), 'invoice')
+    await user.type(await openSearch(user), 'invoice')
 
     await waitFor(
       () => {
@@ -78,7 +91,7 @@ describe('RequestListPage', () => {
   it('searches by requester name as well as title', async () => {
     const { user } = await renderList()
 
-    await user.type(screen.getByLabelText('Search'), 'Ana Costa')
+    await user.type(await openSearch(user), 'Ana Costa')
 
     await waitFor(
       () => {
@@ -137,7 +150,7 @@ describe('RequestListPage', () => {
   it('shows an empty state with a way back when nothing matches', async () => {
     const { user } = await renderList()
 
-    await user.type(screen.getByLabelText('Search'), 'zzzzz-no-such-request')
+    await user.type(await openSearch(user), 'zzzzz-no-such-request')
 
     expect(
       await screen.findByText(/No requests match these filters/i, {}, { timeout: 5000 }),

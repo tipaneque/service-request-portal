@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
+import { Box, Button, Paper, Skeleton, Typography } from '@mui/material'
+import RefreshIcon from '@mui/icons-material/Refresh'
+import SearchOffIcon from '@mui/icons-material/SearchOff'
 import { useServiceRequest } from '@/api/queries'
 import { PriorityBadge, StatusBadge } from '@/components/Badges'
 import { Alert, ApiErrorAlert } from '@/components/Alert'
@@ -10,11 +13,11 @@ import { StatusUpdatePanel } from './StatusUpdatePanel'
 
 function DetailSkeleton() {
   return (
-    <div className="panel panel--padded stack" aria-hidden="true">
-      <div className="skeleton" style={{ height: '1.75rem', width: '60%' }} />
-      <div className="skeleton" style={{ height: '1rem', width: '35%' }} />
-      <div className="skeleton" style={{ height: '6rem' }} />
-    </div>
+    <Paper className="panel panel--padded stack" elevation={0} aria-hidden="true">
+      <Skeleton variant="rounded" height={28} width="60%" />
+      <Skeleton variant="rounded" height={16} width="35%" />
+      <Skeleton variant="rounded" height={96} />
+    </Paper>
   )
 }
 
@@ -36,7 +39,7 @@ export function RequestDetailPage() {
     <div className="stack">
       <nav className="breadcrumb" aria-label="Breadcrumb">
         <Link to="/requests">Service requests</Link>
-        <span aria-hidden="true"> / </span>
+        <span aria-hidden="true">/</span>
         <span className="mono">{requestId}</span>
       </nav>
 
@@ -49,31 +52,27 @@ export function RequestDetailPage() {
         </>
       ) : error ? (
         error.isNotFound ? (
-          <section className="panel">
+          <Paper className="panel" component="section" elevation={0}>
             <EmptyState
               title="Service request not found"
               description={
                 error.detail ?? `No service request exists with id ${requestId ?? 'unknown'}.`
               }
-              icon={<span aria-hidden="true">?</span>}
+              icon={<SearchOffIcon aria-hidden />}
               action={
-                <Link className="button button--primary" to="/requests">
+                <Button component={Link} variant="contained" to="/requests">
                   Back to all requests
-                </Link>
+                </Button>
               }
             />
-          </section>
+          </Paper>
         ) : (
           <ApiErrorAlert
             error={error}
             actions={
-              <button
-                type="button"
-                className="button button--primary"
-                onClick={() => void refetch()}
-              >
+              <Button type="button" variant="contained" onClick={() => void refetch()}>
                 Try again
-              </button>
+              </Button>
             }
           />
         )
@@ -96,38 +95,40 @@ export function RequestDetailPage() {
 
           <div className="page-header">
             <div className="page-header__text">
-              <p className="inline-meta">
+              <div className="inline-meta">
                 <span className="mono">{request.id}</span>
                 <StatusBadge status={request.status} />
                 <PriorityBadge priority={request.priority} />
-              </p>
-              <h1>{request.title}</h1>
-              <p className="page-header__description">
+              </div>
+              <Typography className="page-header__title" component="h1" variant="h3">
+                {request.title}
+              </Typography>
+              <Typography className="page-header__description">
                 Raised by {request.requesterName} &middot;{' '}
                 <time dateTime={request.createdAt}>{formatRelative(request.createdAt)}</time>
-              </p>
+              </Typography>
             </div>
-            <button
+            <Button
               type="button"
-              className="button button--secondary"
+              variant="outlined"
               onClick={() => void refetch()}
               disabled={isFetching}
+              startIcon={isFetching ? <Spinner label={null} /> : <RefreshIcon />}
             >
-              {isFetching ? <Spinner label={null} /> : null}
               Refresh
-            </button>
+            </Button>
           </div>
 
           <div className="detail-grid">
-            <section className="panel" aria-labelledby="details-heading">
+            <Paper className="panel" component="section" elevation={0} aria-labelledby="details-heading">
               <div className="panel__header">
-                <h2 className="panel__title" id="details-heading">
+                <Typography className="panel__title" component="h2" id="details-heading">
                   Request details
-                </h2>
+                </Typography>
               </div>
-              <div className="panel__body stack">
+              <Box className="panel__body stack">
                 <div>
-                  <h3 className="field__label">Description</h3>
+                  <h3 className="detail-label">Description</h3>
                   <p className="detail-description">{request.description}</p>
                 </div>
 
@@ -167,14 +168,14 @@ export function RequestDetailPage() {
                     <dd className="mono">{request.version}</dd>
                   </div>
                 </dl>
-              </div>
-            </section>
+              </Box>
+            </Paper>
 
-            <section className="panel" aria-labelledby="status-heading">
+            <Paper className="panel" component="section" elevation={0} aria-labelledby="status-heading">
               <div className="panel__header">
-                <h2 className="panel__title" id="status-heading">
+                <Typography className="panel__title" component="h2" id="status-heading">
                   Update status
-                </h2>
+                </Typography>
               </div>
               <div className="panel__body">
                 <StatusUpdatePanel
@@ -187,7 +188,7 @@ export function RequestDetailPage() {
                   }
                 />
               </div>
-            </section>
+            </Paper>
           </div>
         </>
       ) : null}

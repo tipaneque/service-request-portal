@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Button, Paper } from '@mui/material'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import { useAuth } from '@/auth/AuthContext'
 import { Alert } from '@/components/Alert'
 import { Spinner } from '@/components/Spinner'
@@ -26,23 +28,24 @@ export function AuthCallbackPage() {
   if (error) {
     return (
       <main className="signin">
-        <div className="signin__card" style={{ textAlign: 'left' }}>
+        <Paper className="signin__card" elevation={0} sx={{ textAlign: 'left' }}>
           <Alert
             tone="error"
             title="Could not complete sign-in"
             actions={
-              <button
+              <Button
                 type="button"
-                className="button button--primary"
+                variant="contained"
+                startIcon={<ArrowBackIcon />}
                 onClick={() => navigate('/sign-in', { replace: true })}
               >
                 Back to sign-in
-              </button>
+              </Button>
             }
           >
             <p>{error.message}</p>
           </Alert>
-        </div>
+        </Paper>
       </main>
     )
   }

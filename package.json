@@ -18,7 +18,12 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "generate:api": "openapi-typescript openapi/service-requests.openapi.yaml -o src/api/schema.ts",
-    "msw:init": "msw init public --save"
+    "msw:init": "msw init public --save",
+    "theme:dev": "npm run dev --prefix keycloak-theme",
+    "theme:storybook": "npm run storybook --prefix keycloak-theme",
+    "theme:lint": "npm run lint --prefix keycloak-theme",
+    "theme:typecheck": "npm run typecheck --prefix keycloak-theme",
+    "theme:build": "npm run build-keycloak-theme --prefix keycloak-theme"
   },
   "msw": {
     "workerDirectory": [
@@ -26,7 +31,11 @@
     ]
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@hookform/resolvers": "^5.9.1",
+    "@mui/icons-material": "^9.4.0",
+    "@mui/material": "^9.4.0",
     "@tanstack/react-query": "^5.103.1",
     "oidc-client-ts": "^3.5.0",
     "react": "^19.3.0",

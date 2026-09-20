@@ -28,7 +28,9 @@ describe('AppLayout', () => {
 
     expect(getAccessToken()).toBe('mock-access-token')
 
-    await user.click(screen.getByRole('button', { name: /Sign out/i }))
+    // Sign out lives behind the account menu, so it has to be opened first.
+    await user.click(screen.getByRole('button', { name: /Account: Alex Agent/i }))
+    await user.click(await screen.findByRole('menuitem', { name: /Sign out/i }))
 
     expect(getAccessToken()).toBeNull()
     expect(window.sessionStorage.getItem('srp.mock-session')).toBeNull()

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Alert as MuiAlert, AlertTitle, Box } from '@mui/material'
 import { ApiError } from '@/api/ApiError'
 
 export type AlertTone = 'error' | 'success' | 'warning' | 'info'
@@ -13,17 +14,19 @@ interface AlertProps {
 
 export function Alert({ tone = 'info', title, children, actions }: AlertProps) {
   return (
-    <div
+    <MuiAlert
+      severity={tone}
+      variant="outlined"
       className={`alert alert--${tone}`}
       // Errors interrupt; confirmations wait for a pause in speech.
       role={tone === 'error' ? 'alert' : 'status'}
     >
-      <div className="alert__body">
-        <p className="alert__title">{title}</p>
+      <Box className="alert__body">
+        <AlertTitle className="alert__title">{title}</AlertTitle>
         {children ? <div className="alert__detail">{children}</div> : null}
         {actions ? <div className="alert__actions">{actions}</div> : null}
-      </div>
-    </div>
+      </Box>
+    </MuiAlert>
   )
 }
 

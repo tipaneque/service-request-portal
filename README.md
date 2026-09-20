@@ -175,6 +175,19 @@ VITE_OIDC_POST_LOGOUT_REDIRECT_URI=http://localhost:5173
 VITE_OIDC_SCOPE=openid profile email
 ```
 
+#### Tema de login Keycloakify
+
+O tema do login vive num pacote independente em [`keycloak-theme/`](keycloak-theme). Ele usa o nome `customer-requests` e espelha os tokens visuais de `src/styles/index.css` em `keycloak-theme/src/login/theme.css`.
+
+```bash
+npm install --prefix keycloak-theme
+npm run theme:dev        # pré-visualização rápida
+npm run theme:storybook  # estados da interface
+npm run theme:build      # JARs em keycloak-theme/dist_keycloak/
+```
+
+Para activar o resultado, copie o JAR compatível para a pasta `providers` do Keycloak, reinicie-o e escolha `customer-requests` em **Realm settings → Themes → Login theme**. Instruções detalhadas estão em [`keycloak-theme/README.md`](keycloak-theme/README.md).
+
 ### Auth0
 
 Create a **Single Page Application**, then add the callback URL, logout URL and allowed web origin as above. Auth0 issues an opaque access token unless an audience is requested, so set `VITE_OIDC_AUDIENCE` to your API identifier to receive a JWT the API can validate:
@@ -242,6 +255,11 @@ The worker starts before the first render (`src/main.tsx`), so no request escape
 | `npm run test:coverage` | Run the tests and produce a coverage report. |
 | `npm run generate:api` | Regenerate `src/api/schema.ts` from the OpenAPI document. |
 | `npm run msw:init` | Reinstall the MSW service worker into `public/`. |
+| `npm run theme:dev` | Preview the Keycloak login theme with Vite. |
+| `npm run theme:storybook` | Preview the theme's login states in Storybook. |
+| `npm run theme:lint` | Lint the independent Keycloak theme package. |
+| `npm run theme:typecheck` | Typecheck the independent Keycloak theme package. |
+| `npm run theme:build` | Build installable Keycloak theme JARs. |
 
 ---
 

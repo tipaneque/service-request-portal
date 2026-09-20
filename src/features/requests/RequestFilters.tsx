@@ -1,4 +1,19 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
+import {
+  Box,
+  Button,
+  Chip,
+  Collapse,
+  IconButton,
+  InputAdornment,
+  Paper,
+  TextField,
+  Tooltip,
+  Typography,
+} from '@mui/material'
+import ClearAllIcon from '@mui/icons-material/ClearAll'
+import CloseIcon from '@mui/icons-material/Close'
+import SearchIcon from '@mui/icons-material/SearchOutlined'
 import {
   type ServiceRequestPriority,
   type ServiceRequestStatus,
@@ -12,7 +27,6 @@ import {
   STATUSES,
   STATUS_LABELS,
 } from '@/domain/serviceRequests'
-import { Field } from '@/components/Field'
 import { useDebouncedCallback } from '@/lib/useDebouncedCallback'
 import { PAGE_SIZE_OPTIONS, type RequestListFilters } from './useRequestListParams'
 
@@ -23,163 +37,231 @@ interface RequestFiltersProps {
   onClear: () => void
 }
 
+/**
+ * An active filter is removed from the chip itself, so the delete control needs
+ * a name of its own: "×" alone tells a screen-reader user nothing about which
+ * filter is about to disappear.
+ */
+function FilterChip({ label, removeLabel, onRemove }: {
+  label: ReactNode
+  removeLabel: string
+  onRemove: () => void
+}) {
+  return (
+    <Chip
+      size="small"
+      label={label}
+      onDelete={onRemove}
+      deleteIcon={
+        <IconButton aria-label={removeLabel} size="small" sx={{ borderRadius: '50%', p: 0.25 }}>
+          <CloseIcon sx={{ fontSize: 15 }} />
+        </IconButton>
+      }
+      sx={{ maxWidth: '100%', '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' } }}
+    />
+  )
+}
+
 export function RequestFilters({
   filters,
   hasActiveFilters,
   onChange,
   onClear,
 }: RequestFiltersProps) {
-  // The input updates on every keystroke; the URL (and therefore the request)
-  // is only updated once typing settles.
   const [searchDraft, setSearchDraft] = useState(filters.search)
-  // The last value this component pushed into the URL. It tells an echo of our
-  // own update apart from a change made somewhere else.
   const [pushedSearch, setPushedSearch] = useState(filters.search)
+  // A term carried in the URL means the field is already in use: open on it.
+  const [isSearchOpen, setIsSearchOpen] = useState(filters.search !== '')
 
   const commitSearch = useDebouncedCallback((value: string) => {
     setPushedSearch(value)
     onChange({ search: value }, { replace: true })
   })
 
-  // A change made elsewhere (chip removal, "clear all", browser back) is
-  // adopted during render rather than in an effect, which would paint the stale
-  // text first and then correct it.
   if (filters.search !== pushedSearch) {
     setPushedSearch(filters.search)
     setSearchDraft(filters.search)
   }
 
+  const closeSearch = () => {
+    setIsSearchOpen(false)
+    setSearchDraft('')
+    if (filters.search) {
+      setPushedSearch('')
+      onChange({ search: '' }, { replace: true })
+    }
+  }
+
   return (
-    <div className="filters" role="search" aria-label="Request filters">
-      <div className="filters__row">
-        <Field label="Search" hint="Matches the title or the requester name.">
-          {(props) => (
-            <input
-              {...props}
-              className="control"
-              type="search"
-              placeholder="e.g. portal, invoice, Ana Costa"
-              value={searchDraft}
-              onChange={(event) => {
-                setSearchDraft(event.target.value)
-                commitSearch(event.target.value)
+    <Paper className="filters" role="search" aria-label="Request filters" elevation={0}>
+      <Box className="filters__row">
+        {/*
+         * The search field is summoned by its icon rather than occupying the
+         * bar permanently; opening it takes flex space from the selects, which
+         * shrink to make room.
+         */}
+        <Collapse
+          in={!isSearchOpen}
+          orientation="horizontal"
+          unmountOnExit
+          sx={{ flex: '0 0 auto' }}
+        >
+          <Tooltip title="Search requests">
+            <IconButton
+              aria-label="Search requests"
+              onClick={() => setIsSearchOpen(true)}
+              sx={{
+                border: '1px solid var(--hairline)',
+                backgroundColor: 'var(--glass-soft)',
+                height: 48,
+                width: 48,
               }}
-              maxLength={100}
-            />
-          )}
-        </Field>
-
-        <Field label="Status">
-          {(props) => (
-            <select
-              {...props}
-              className="control"
-              value={filters.status}
-              onChange={(event) =>
-                onChange({ status: event.target.value as ServiceRequestStatus | '' })
-              }
             >
-              <option value="">All statuses</option>
-              {STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {STATUS_LABELS[status]}
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
+              <SearchIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Collapse>
 
-        <Field label="Priority">
-          {(props) => (
-            <select
-              {...props}
-              className="control"
-              value={filters.priority}
-              onChange={(event) =>
-                onChange({ priority: event.target.value as ServiceRequestPriority | '' })
-              }
-            >
-              <option value="">All priorities</option>
-              {PRIORITIES.map((priority) => (
-                <option key={priority} value={priority}>
-                  {PRIORITY_LABELS[priority]}
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
+        <Collapse
+          in={isSearchOpen}
+          orientation="horizontal"
+          unmountOnExit
+          className="filters__search"
+        >
+          <TextField
+            label="Search"
+            autoFocus
+            type="search"
+            placeholder="e.g. portal, invoice, Ana Costa"
+            value={searchDraft}
+            onChange={(event) => {
+              setSearchDraft(event.target.value)
+              commitSearch(event.target.value)
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') closeSearch()
+            }}
+            slotProps={{
+              htmlInput: { maxLength: 100 },
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ fontSize: 19, color: 'text.secondary' }} aria-hidden />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton aria-label="Close search" size="small" onClick={closeSearch}>
+                      <CloseIcon sx={{ fontSize: 17 }} />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
+            sx={{ width: { xs: '100%', sm: 300 } }}
+          />
+        </Collapse>
 
-        <Field label="Sort by">
-          {(props) => (
-            <select
-              {...props}
-              className="control"
-              value={filters.sort}
-              onChange={(event) => onChange({ sort: event.target.value as SortOption })}
-            >
-              {SORT_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {SORT_LABELS[option]}
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
-      </div>
+        <TextField
+          select
+          slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
+          label="Status"
+          className="filters__select"
+          value={filters.status}
+          onChange={(event) => onChange({ status: event.target.value as ServiceRequestStatus | '' })}
+        >
+          <option value="">All statuses</option>
+          {STATUSES.map((status) => (
+            <option key={status} value={status}>
+              {STATUS_LABELS[status]}
+            </option>
+          ))}
+        </TextField>
 
-      <div className="filters__footer">
-        <div className="filters__chips">
-          {filters.search ? (
-            <button
-              type="button"
-              className="chip"
-              onClick={() => onChange({ search: '' })}
-            >
-              Search: {filters.search}
-              <span aria-hidden="true">&times;</span>
-              <span className="visually-hidden">Remove search filter</span>
-            </button>
-          ) : null}
+        <TextField
+          select
+          slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
+          label="Priority"
+          className="filters__select"
+          value={filters.priority}
+          onChange={(event) =>
+            onChange({ priority: event.target.value as ServiceRequestPriority | '' })
+          }
+        >
+          <option value="">All priorities</option>
+          {PRIORITIES.map((priority) => (
+            <option key={priority} value={priority}>
+              {PRIORITY_LABELS[priority]}
+            </option>
+          ))}
+        </TextField>
 
-          {filters.status ? (
-            <button type="button" className="chip" onClick={() => onChange({ status: '' })}>
-              {STATUS_LABELS[filters.status]}
-              <span aria-hidden="true">&times;</span>
-              <span className="visually-hidden">Remove status filter</span>
-            </button>
-          ) : null}
+        <TextField
+          select
+          slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
+          label="Sort by"
+          className="filters__select"
+          value={filters.sort}
+          onChange={(event) => onChange({ sort: event.target.value as SortOption })}
+        >
+          {SORT_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {SORT_LABELS[option]}
+            </option>
+          ))}
+        </TextField>
 
-          {filters.priority ? (
-            <button type="button" className="chip" onClick={() => onChange({ priority: '' })}>
-              {PRIORITY_LABELS[filters.priority]}
-              <span aria-hidden="true">&times;</span>
-              <span className="visually-hidden">Remove priority filter</span>
-            </button>
-          ) : null}
-
-          {hasActiveFilters ? (
-            <button type="button" className="button button--ghost" onClick={onClear}>
-              Clear all
-            </button>
-          ) : null}
-        </div>
-
-        <label className="inline-meta">
-          Rows per page
-          <select
-            className="control"
-            style={{ width: 'auto', minHeight: '2rem', padding: '0.15rem 1.9rem 0.15rem 0.5rem' }}
+        <Box className="rows-control">
+          <Typography component="span" variant="body2">
+            Rows
+          </Typography>
+          <TextField
+            select
+            size="small"
             value={filters.pageSize}
             onChange={(event) => onChange({ pageSize: Number(event.target.value) })}
+            slotProps={{ select: { native: true, 'aria-label': 'Rows per page' } }}
+            sx={{ width: 76 }}
           >
             {PAGE_SIZE_OPTIONS.map((size) => (
               <option key={size} value={size}>
                 {size}
               </option>
             ))}
-          </select>
-        </label>
-      </div>
-    </div>
+          </TextField>
+        </Box>
+      </Box>
+
+      {hasActiveFilters ? (
+        <Box className="filters__footer">
+          <Box className="filters__chips">
+            {filters.search ? (
+              <FilterChip
+                label={`Search: ${filters.search}`}
+                removeLabel="Remove search filter"
+                onRemove={() => onChange({ search: '' })}
+              />
+            ) : null}
+            {filters.status ? (
+              <FilterChip
+                label={STATUS_LABELS[filters.status]}
+                removeLabel="Remove status filter"
+                onRemove={() => onChange({ status: '' })}
+              />
+            ) : null}
+            {filters.priority ? (
+              <FilterChip
+                label={PRIORITY_LABELS[filters.priority]}
+                removeLabel="Remove priority filter"
+                onRemove={() => onChange({ priority: '' })}
+              />
+            ) : null}
+            <Button size="small" variant="text" startIcon={<ClearAllIcon />} onClick={onClear}>
+              Clear all
+            </Button>
+          </Box>
+        </Box>
+      ) : null}
+    </Paper>
   )
 }

@@ -1,12 +1,9 @@
 import { useState } from 'react'
+import { Box, Button, TextField, Typography } from '@mui/material'
 import { useUpdateServiceRequestStatus } from '@/api/queries'
-import {
-  type ServiceRequest,
-  type ServiceRequestStatus,
-} from '@/api/types'
+import { type ServiceRequest, type ServiceRequestStatus } from '@/api/types'
 import { ALLOWED_TRANSITIONS, STATUS_LABELS, isTerminal } from '@/domain/serviceRequests'
 import { Alert, ApiErrorAlert } from '@/components/Alert'
-import { Field } from '@/components/Field'
 import { Spinner } from '@/components/Spinner'
 
 interface StatusUpdatePanelProps {
@@ -64,45 +61,40 @@ export function StatusUpdatePanel({ request, onUpdated }: StatusUpdatePanelProps
   const error = updateStatus.error
 
   return (
-    <form className="stack stack--tight" onSubmit={(event) => void handleSubmit(event)} noValidate>
-      <Field
+    <Box
+      component="form"
+      className="stack stack--tight"
+      onSubmit={(event) => void handleSubmit(event)}
+      noValidate
+    >
+      <TextField
         label="Move to"
-        hint={`Current status: ${STATUS_LABELS[request.status]}.`}
+        select
+        fullWidth
+        slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
+        helperText={`Current status: ${STATUS_LABELS[request.status]}.`}
+        value={status}
+        onChange={(event) => setStatus(event.target.value as ServiceRequestStatus | '')}
       >
-        {(props) => (
-          <select
-            {...props}
-            className="control"
-            value={status}
-            onChange={(event) => setStatus(event.target.value as ServiceRequestStatus | '')}
-          >
-            <option value="">Select a new status&hellip;</option>
-            {transitions.map((target) => (
-              <option key={target} value={target}>
-                {STATUS_LABELS[target]}
-              </option>
-            ))}
-          </select>
-        )}
-      </Field>
+        <option value="">Select a new status&hellip;</option>
+        {transitions.map((target) => (
+          <option key={target} value={target}>
+            {STATUS_LABELS[target]}
+          </option>
+        ))}
+      </TextField>
 
-      <Field
-        label="Note"
-        optional
-        hint={`Recorded with the transition. ${note.length}/${NOTE_MAX_LENGTH} characters.`}
-      >
-        {(props) => (
-          <textarea
-            {...props}
-            className="control"
-            rows={3}
-            maxLength={NOTE_MAX_LENGTH}
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-            placeholder="Password reset and portal access confirmed with the customer."
-          />
-        )}
-      </Field>
+      <TextField
+        label="Note (optional)"
+        fullWidth
+        multiline
+        minRows={3}
+        value={note}
+        onChange={(event) => setNote(event.target.value)}
+        slotProps={{ htmlInput: { maxLength: NOTE_MAX_LENGTH } }}
+        helperText={`Recorded with the transition. ${note.length}/${NOTE_MAX_LENGTH} characters.`}
+        placeholder="Password reset and portal access confirmed with the customer."
+      />
 
       {error ? (
         <ApiErrorAlert
@@ -118,18 +110,16 @@ export function StatusUpdatePanel({ request, onUpdated }: StatusUpdatePanelProps
         </ApiErrorAlert>
       ) : null}
 
-      <button
+      <Button
         type="submit"
-        className="button button--primary"
+        variant="contained"
+        size="large"
+        fullWidth
         disabled={!status || updateStatus.isPending}
+        startIcon={updateStatus.isPending ? <Spinner label={null} /> : null}
       >
-        {updateStatus.isPending ? <Spinner label={null} /> : null}
         {updateStatus.isPending ? 'Updating…' : 'Update status'}
-      </button>
-
-      <p className="inline-meta">
-        Version {request.version} is sent with the update to detect concurrent changes.
-      </p>
-    </form>
+      </Button>
+    </Box>
   )
 }

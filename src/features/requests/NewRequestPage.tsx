@@ -1,18 +1,28 @@
 import { useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
+import { useForm, type UseFormRegisterReturn } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Box, Button, Paper, TextField, Typography } from '@mui/material'
+import SendIcon from '@mui/icons-material/SendOutlined'
 import { useCreateServiceRequest } from '@/api/queries'
 import { PRIORITIES, PRIORITY_LABELS } from '@/domain/serviceRequests'
 import { useAuth } from '@/auth/AuthContext'
 import { ApiErrorAlert } from '@/components/Alert'
-import { Field } from '@/components/Field'
 import { Spinner } from '@/components/Spinner'
 import {
   CATEGORY_SUGGESTIONS,
   createRequestSchema,
   type CreateRequestFormValues,
 } from './requestSchema'
+
+/**
+ * `register` hands back a `ref` meant for the DOM control, but spreading it
+ * onto a `TextField` would attach it to the wrapping `FormControl`. Routing it
+ * through `inputRef` keeps react-hook-form pointed at the real input.
+ */
+function bind({ ref, ...rest }: UseFormRegisterReturn) {
+  return { ...rest, inputRef: ref }
+}
 
 export function NewRequestPage() {
   const navigate = useNavigate()
@@ -74,141 +84,135 @@ export function NewRequestPage() {
     <div className="stack">
       <nav className="breadcrumb" aria-label="Breadcrumb">
         <Link to="/requests">Service requests</Link>
-        <span aria-hidden="true"> / </span>
+        <span aria-hidden="true">/</span>
         <span>New request</span>
       </nav>
 
       <div className="page-header">
         <div className="page-header__text">
-          <h1>New service request</h1>
-          <p className="page-header__description">
-            Log a customer issue. The request is created with status{' '}
-            <strong>Open</strong> and can be progressed from its detail page.
-          </p>
+          <Typography className="page-header__title" component="h1" variant="h3">
+            New service request
+          </Typography>
+          <Typography className="page-header__description">
+            Log a customer issue. The request is created with status <strong>Open</strong> and can
+            be progressed from its detail page.
+          </Typography>
         </div>
       </div>
 
-      <section className="panel panel--padded">
+      <Paper className="panel panel--padded" component="section" elevation={0}>
         {createRequest.error && !createRequest.error.fieldErrors ? (
-          <div style={{ marginBottom: 'var(--space-5)' }}>
+          <Box sx={{ mb: 3 }}>
             <ApiErrorAlert error={createRequest.error} title="The request could not be created" />
-          </div>
+          </Box>
         ) : null}
 
         <form onSubmit={(event) => void onSubmit(event)} noValidate>
           <div className="form-grid form-grid--two">
             <div className="form-grid__full">
-              <Field label="Title" error={errors.title?.message} hint="A short summary, 3-120 characters.">
-                {(props) => (
-                  <input
-                    {...props}
-                    {...register('title')}
-                    className="control"
-                    type="text"
-                    autoComplete="off"
-                    placeholder="Unable to access customer portal"
-                  />
-                )}
-              </Field>
+              <TextField
+                {...bind(register('title'))}
+                label="Title"
+                fullWidth
+                autoComplete="off"
+                placeholder="Unable to access customer portal"
+                error={Boolean(errors.title)}
+                helperText={errors.title?.message ?? 'A short summary, 3-120 characters.'}
+              />
             </div>
 
             <div className="form-grid__full">
-              <Field
+              <TextField
+                {...bind(register('description'))}
                 label="Description"
-                error={errors.description?.message}
-                hint="What happened, what was expected, and any error messages. 10-2000 characters."
-              >
-                {(props) => (
-                  <textarea
-                    {...props}
-                    {...register('description')}
-                    className="control"
-                    rows={6}
-                    placeholder="The customer receives &quot;Account locked&quot; after signing in with valid credentials."
-                  />
-                )}
-              </Field>
+                fullWidth
+                multiline
+                minRows={5}
+                placeholder={'The customer receives "Account locked" after signing in with valid credentials.'}
+                error={Boolean(errors.description)}
+                helperText={
+                  errors.description?.message ??
+                  'What happened, what was expected, and any error messages. 10-2000 characters.'
+                }
+              />
             </div>
 
-            <Field
-              label="Category"
-              error={errors.category?.message}
-              hint="Free text; pick a suggestion or type your own."
+            <div>
+              <TextField
+                {...bind(register('category'))}
+                label="Category"
+                fullWidth
+                autoComplete="off"
+                placeholder="Access"
+                slotProps={{ htmlInput: { list: 'category-suggestions' } }}
+                error={Boolean(errors.category)}
+                helperText={
+                  errors.category?.message ?? 'Free text; pick a suggestion or type your own.'
+                }
+              />
+              <datalist id="category-suggestions">
+                {CATEGORY_SUGGESTIONS.map((category) => (
+                  <option key={category} value={category} />
+                ))}
+              </datalist>
+            </div>
+
+            <TextField
+              {...bind(register('priority'))}
+              label="Priority"
+              select
+              fullWidth
+              slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
+              error={Boolean(errors.priority)}
+              helperText={errors.priority?.message ?? ' '}
             >
-              {(props) => (
-                <>
-                  <input
-                    {...props}
-                    {...register('category')}
-                    className="control"
-                    type="text"
-                    list="category-suggestions"
-                    autoComplete="off"
-                    placeholder="Access"
-                  />
-                  <datalist id="category-suggestions">
-                    {CATEGORY_SUGGESTIONS.map((category) => (
-                      <option key={category} value={category} />
-                    ))}
-                  </datalist>
-                </>
-              )}
-            </Field>
+              {PRIORITIES.map((priority) => (
+                <option key={priority} value={priority}>
+                  {PRIORITY_LABELS[priority]}
+                </option>
+              ))}
+            </TextField>
 
-            <Field label="Priority" error={errors.priority?.message}>
-              {(props) => (
-                <select {...props} {...register('priority')} className="control">
-                  {PRIORITIES.map((priority) => (
-                    <option key={priority} value={priority}>
-                      {PRIORITY_LABELS[priority]}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </Field>
+            <TextField
+              {...bind(register('requesterName'))}
+              label="Requester name"
+              fullWidth
+              autoComplete="name"
+              placeholder={user?.name ?? 'Example Customer'}
+              error={Boolean(errors.requesterName)}
+              helperText={errors.requesterName?.message ?? ' '}
+            />
 
-            <Field label="Requester name" error={errors.requesterName?.message}>
-              {(props) => (
-                <input
-                  {...props}
-                  {...register('requesterName')}
-                  className="control"
-                  type="text"
-                  autoComplete="name"
-                  placeholder={user?.name ?? 'Example Customer'}
-                />
-              )}
-            </Field>
-
-            <Field
+            <TextField
+              {...bind(register('requesterEmail'))}
               label="Requester email"
-              error={errors.requesterEmail?.message}
-              hint="Used for follow-up on this request."
-            >
-              {(props) => (
-                <input
-                  {...props}
-                  {...register('requesterEmail')}
-                  className="control"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="customer@example.com"
-                />
-              )}
-            </Field>
+              type="email"
+              fullWidth
+              autoComplete="email"
+              placeholder="customer@example.com"
+              error={Boolean(errors.requesterEmail)}
+              helperText={
+                errors.requesterEmail?.message ?? 'Used for follow-up on this request.'
+              }
+            />
           </div>
 
           <div className="form-actions">
-            <button type="submit" className="button button--primary" disabled={isSubmitting}>
-              {isSubmitting ? <Spinner label={null} /> : null}
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              disabled={isSubmitting}
+              startIcon={isSubmitting ? <Spinner label={null} /> : <SendIcon />}
+            >
               {isSubmitting ? 'Creating…' : 'Create request'}
-            </button>
-            <Link className="button button--secondary" to="/requests">
+            </Button>
+            <Button component={Link} variant="outlined" size="large" to="/requests">
               Cancel
-            </Link>
+            </Button>
           </div>
         </form>
-      </section>
+      </Paper>
     </div>
   )
 }

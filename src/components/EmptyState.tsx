@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Paper, Typography } from '@mui/material'
 
 interface EmptyStateProps {
   title: string
@@ -10,15 +11,26 @@ interface EmptyStateProps {
 
 export function EmptyState({ title, description, icon, action }: EmptyStateProps) {
   return (
-    <div className="state">
+    <Paper
+      className="state"
+      component="section"
+      elevation={0}
+      sx={{ background: 'transparent', border: 'none', boxShadow: 'none', backdropFilter: 'none' }}
+    >
       {icon ? (
         <span className="state__icon" aria-hidden="true">
           {icon}
         </span>
       ) : null}
-      <p className="state__title">{title}</p>
-      {description ? <p className="state__description">{description}</p> : null}
+      <Typography className="state__title" component="h2" variant="h5">
+        {title}
+      </Typography>
+      {description ? (
+        <Typography className="state__description" sx={{ mb: 1 }}>
+          {description}
+        </Typography>
+      ) : null}
       {action}
-    </div>
+    </Paper>
   )
 }

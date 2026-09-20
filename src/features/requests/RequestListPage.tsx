@@ -1,10 +1,13 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { Box, Button, Fade, Paper, Typography } from '@mui/material'
+import InboxIcon from '@mui/icons-material/InboxOutlined'
 import { useServiceRequests } from '@/api/queries'
 import { ApiErrorAlert } from '@/components/Alert'
 import { EmptyState } from '@/components/EmptyState'
 import { Pagination } from '@/components/Pagination'
 import { Spinner } from '@/components/Spinner'
+import { IMAGES } from '@/lib/assets'
 import { RequestFilters } from './RequestFilters'
 import { RequestList, RequestListSkeleton } from './RequestList'
 import { useRequestListParams } from './useRequestListParams'
@@ -30,14 +33,32 @@ export function RequestListPage() {
     <div className="stack">
       <div className="page-header">
         <div className="page-header__text">
-          <h1>Service requests</h1>
-          <p className="page-header__description">
+          <Typography className="page-header__title" component="h1" variant="h3">
+            Service requests
+          </Typography>
+          <Typography className="page-header__description">
             Browse, search and progress the requests raised by customers.
-          </p>
+          </Typography>
         </div>
-        <Link className="button button--primary" to="/requests/new">
-          <span aria-hidden="true">+</span> New request
-        </Link>
+        <Button
+          component={Link}
+          variant="contained"
+          size="large"
+          startIcon={
+            <Box
+              component="img"
+              src={IMAGES.add}
+              alt=""
+              // The mark is drawn in near-black; flattening it to white keeps
+              // the shape while making it legible on the accent fill.
+              sx={{ width: 20, height: 20, filter: 'brightness(0) invert(1)' }}
+            />
+          }
+          to="/requests/new"
+          sx={{ alignSelf: { xs: 'stretch', sm: 'flex-start' } }}
+        >
+          New request
+        </Button>
       </div>
 
       <RequestFilters
@@ -56,24 +77,25 @@ export function RequestListPage() {
             : ''}
       </p>
 
-      <section className="panel" aria-label="Service request results">
+      <Paper
+        className="panel"
+        component="section"
+        elevation={0}
+        aria-label="Service request results"
+      >
         {isPending ? (
           <RequestListSkeleton />
         ) : error ? (
-          <div style={{ padding: 'var(--space-5)' }}>
+          <Box sx={{ p: 3 }}>
             <ApiErrorAlert
               error={error}
               actions={
-                <button
-                  type="button"
-                  className="button button--primary"
-                  onClick={() => void refetch()}
-                >
+                <Button type="button" variant="contained" onClick={() => void refetch()}>
                   Try again
-                </button>
+                </Button>
               }
             />
-          </div>
+          </Box>
         ) : data && data.items.length === 0 ? (
           <EmptyState
             title={hasActiveFilters ? 'No requests match these filters' : 'No service requests yet'}
@@ -82,25 +104,31 @@ export function RequestListPage() {
                 ? 'Try a different search term, or clear the filters to see every request.'
                 : 'Requests raised by customers will appear here once they are created.'
             }
-            icon={<span aria-hidden="true">&#9675;</span>}
+            icon={<InboxIcon aria-hidden />}
             action={
               hasActiveFilters ? (
-                <button type="button" className="button button--secondary" onClick={clearFilters}>
+                <Button type="button" variant="outlined" onClick={clearFilters}>
                   Clear filters
-                </button>
+                </Button>
               ) : (
-                <Link className="button button--primary" to="/requests/new">
+                <Button component={Link} variant="contained" to="/requests/new">
                   Create the first request
-                </Link>
+                </Button>
               )
             }
           />
         ) : data ? (
           <>
             {/* The previous page stays visible while the next one loads. */}
-            <div style={{ opacity: isPlaceholderData ? 0.6 : 1, transition: 'opacity 120ms ease' }}>
+            <Box
+              aria-busy={isPlaceholderData}
+              sx={{
+                opacity: isPlaceholderData ? 0.55 : 1,
+                transition: 'opacity 220ms',
+              }}
+            >
               <RequestList requests={data.items} />
-            </div>
+            </Box>
             <Pagination
               page={data.page}
               pageSize={data.pageSize}
@@ -111,13 +139,31 @@ export function RequestListPage() {
             />
           </>
         ) : null}
-      </section>
+      </Paper>
 
-      {isFetching && !isPending ? (
-        <p className="inline-meta">
-          <Spinner label={null} /> Updating results&hellip;
-        </p>
-      ) : null}
+      <Fade in={isFetching && !isPending} unmountOnExit>
+        <Paper
+          elevation={0}
+          sx={{
+            position: 'fixed',
+            left: '50%',
+            bottom: 24,
+            transform: 'translateX(-50%)',
+            zIndex: 1200,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.25,
+            px: 2.5,
+            py: 1,
+            borderRadius: 999,
+            fontSize: '0.8125rem',
+            boxShadow: 'var(--shadow-lifted)',
+          }}
+        >
+          <Spinner label={null} />
+          <span>Updating results…</span>
+        </Paper>
+      </Fade>
     </div>
   )
 }

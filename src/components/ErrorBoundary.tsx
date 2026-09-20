@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { Button } from '@mui/material'
 import { Alert } from './Alert'
 
 interface Props {
@@ -40,9 +41,9 @@ export class ErrorBoundary extends Component<Props, State> {
           tone="error"
           title="The application ran into an unexpected problem"
           actions={
-            <button type="button" className="button button--primary" onClick={this.handleReload}>
+            <Button type="button" variant="contained" onClick={this.handleReload}>
               Reload the portal
-            </button>
+            </Button>
           }
         >
           <p>

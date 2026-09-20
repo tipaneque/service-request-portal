@@ -1,0 +1,867 @@
+/*
+ * Customer Requests Manager - Keycloak login theme.
+ *
+ * The same liquid-glass language as the portal SPA: a flat canvas, translucent
+ * blurred panes with a hairline edge, pill buttons and a single accent. There
+ * are no gradients anywhere, and a focused field drops its border rather than
+ * growing a coloured one.
+ *
+ * Keycloak's own `login.css` (PatternFly) is still loaded underneath
+ * (`doUseDefaultCss`), so a good part of this file exists to neutralise it.
+ */
+
+/*
+ * Keycloak renders the login page from its own FreeMarker template, so the web
+ * font has to travel with the stylesheet rather than with a <link> in
+ * index.html. If the deployment has no outbound network access the stack falls
+ * straight through to the system UI font.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+:root {
+    color-scheme: light;
+
+    --crm-canvas: #eef1fb;
+    --crm-glass: rgba(255, 255, 255, 0.7);
+    --crm-glass-strong: rgba(255, 255, 255, 0.85);
+    --crm-glass-soft: rgba(255, 255, 255, 0.45);
+    --crm-glass-border: rgba(255, 255, 255, 0.85);
+    --crm-hairline: rgba(15, 23, 42, 0.1);
+    --crm-shadow: 0 18px 40px -18px rgba(15, 23, 42, 0.35);
+    --crm-shadow-lifted: 0 28px 60px -20px rgba(15, 23, 42, 0.45);
+    /* Flat wash over the wallpaper. Not a tint ramp - a single opacity - so
+       the page still holds to the no-gradient rule. */
+    --crm-scrim: rgba(238, 241, 251, 0.42);
+
+    --crm-text: #161b33;
+    --crm-text-muted: #5a6484;
+    --crm-accent: #5b56e0;
+    --crm-accent-hover: #4a45d1;
+    --crm-on-accent: #ffffff;
+
+    --crm-danger: #dc2626;
+    --crm-success: #059669;
+    --crm-warning: #d97706;
+    --crm-info: #2563eb;
+
+    --crm-blur: blur(22px) saturate(180%);
+    --crm-motion: 240ms cubic-bezier(0.32, 0.72, 0, 1);
+    --crm-radius: 14px;
+    --crm-radius-lg: 22px;
+    --crm-pill: 999px;
+
+    --crm-font:
+        Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        color-scheme: dark;
+
+        --crm-canvas: #070a16;
+        /*
+         * Over a photograph a dark pane has to *dim*, not tint: a 6% white
+         * veil would let the sunset through and the label contrast would
+         * swing from one side of the card to the other. Panes darken, wells
+         * recess further, and only the lifted state brightens.
+         */
+        --crm-glass: rgba(11, 16, 32, 0.66);
+        --crm-glass-strong: rgba(255, 255, 255, 0.1);
+        --crm-glass-soft: rgba(0, 0, 0, 0.26);
+        --crm-glass-border: rgba(255, 255, 255, 0.14);
+        --crm-hairline: rgba(255, 255, 255, 0.1);
+        --crm-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.75);
+        --crm-shadow-lifted: 0 28px 60px -20px rgba(0, 0, 0, 0.85);
+        --crm-scrim: rgba(7, 10, 22, 0.58);
+
+        --crm-text: #e9ecf8;
+        --crm-text-muted: #a3adca;
+        --crm-accent: #8b8cf7;
+        --crm-accent-hover: #a0a1ff;
+
+        --crm-danger: #f87171;
+        --crm-success: #34d399;
+        --crm-warning: #fbbf24;
+        --crm-info: #60a5fa;
+    }
+}
+
+/* Blur is expensive; fall back to an opaque tint where it is unsupported. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    :root {
+        --crm-glass: rgba(255, 255, 255, 0.92);
+        --crm-glass-strong: rgba(255, 255, 255, 0.96);
+        --crm-glass-soft: rgba(255, 255, 255, 0.85);
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --crm-glass: rgba(18, 23, 42, 0.94);
+            --crm-glass-strong: rgba(24, 30, 52, 0.96);
+            --crm-glass-soft: rgba(18, 23, 42, 0.88);
+        }
+    }
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/* No list markers anywhere in the product. */
+ul,
+ol {
+    list-style: none;
+}
+
+/*
+ * The fallback colour lives on the root, not on `body`. A negative z-index
+ * pseudo-element of `body` paints *below* body's own background box, so an
+ * opaque `body` background would hide the wallpaper entirely.
+ */
+html,
+html.login-pf {
+    min-height: 100%;
+    background: var(--crm-canvas);
+}
+
+body,
+.login-pf body {
+    position: relative;
+    min-height: 100dvh;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    color: var(--crm-text);
+    /* PatternFly paints its own photo here; ours is drawn by ::before below. */
+    background: transparent;
+    background-image: none;
+    font-family: var(--crm-font);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * The wallpaper, and a flat wash over it.
+ *
+ * Two fixed layers rather than a background on `body`: `background-attachment:
+ * fixed` is unreliable on mobile Safari, and the scrim has to sit between the
+ * photo and the content so the glass panes still have something to refract.
+ */
+body::before,
+body::after {
+    position: fixed;
+    inset: 0;
+    content: "";
+    pointer-events: none;
+}
+
+body::before {
+    z-index: -2;
+    background: url("/assets/images/login-wallpaper.jpg") center / cover no-repeat;
+}
+
+body::after {
+    z-index: -1;
+    background: var(--crm-scrim);
+}
+
+/* ----------------------------------------------------------- page shell -- */
+
+.login-pf-page {
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    width: 100%;
+    max-width: none;
+    min-height: 100dvh;
+    padding: clamp(1.25rem, 4vw, 3rem);
+    margin: 0;
+}
+
+/* The bootstrap grid columns PatternFly leaves in the markup only add gutters
+   and floats inside a card this narrow. */
+.login-pf-page [class*="col-xs-"],
+.login-pf-page [class*="col-sm-"],
+.login-pf-page [class*="col-md-"],
+.login-pf-page [class*="col-lg-"] {
+    float: none;
+    width: 100%;
+    padding-right: 0;
+    padding-left: 0;
+    margin: 0;
+}
+
+/* ---------------------------------------------------------------- brand -- */
+
+#kc-header,
+.login-pf-page-header {
+    width: min(100%, 27rem);
+    margin: 0 auto 1.5rem;
+    padding: 0;
+    border: none;
+}
+
+#kc-header-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0;
+    color: var(--crm-text);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+    text-align: center;
+    text-shadow: none;
+    text-transform: none;
+}
+
+/* The mark is near-black artwork on transparency, so it carries its own light
+   tile instead of being recoloured: that keeps it readable in the dark theme. */
+#kc-header-wrapper::before {
+    width: 4.5rem;
+    height: 4.5rem;
+    flex: none;
+    padding: 0.55rem;
+    border: 1px solid var(--crm-hairline);
+    border-radius: var(--crm-radius-lg);
+    background: #ffffff url("./assets/logo.png") center / calc(100% - 1.1rem) no-repeat;
+    box-shadow: var(--crm-shadow);
+    content: "";
+}
+
+/* ----------------------------------------------------------------- card -- */
+
+.card-pf,
+.login-pf-page .card-pf {
+    width: min(100%, 27rem);
+    padding: clamp(1.5rem, 5vw, 2.5rem);
+    margin: 0 auto;
+    border: 1px solid var(--crm-glass-border);
+    border-radius: var(--crm-radius-lg);
+    background: var(--crm-glass);
+    background-image: none;
+    box-shadow: var(--crm-shadow-lifted);
+    backdrop-filter: var(--crm-blur);
+    -webkit-backdrop-filter: var(--crm-blur);
+}
+
+.login-pf-header {
+    margin-bottom: 1.5rem;
+}
+
+#kc-page-title {
+    margin: 0;
+    color: var(--crm-text);
+    font-size: 1.4rem;
+    font-weight: 650;
+    letter-spacing: -0.025em;
+    line-height: 1.25;
+    text-align: center;
+}
+
+#kc-username {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 0.75rem 0 0;
+    color: var(--crm-text-muted);
+    font-size: 0.875rem;
+}
+
+.subtitle,
+.instruction,
+#kc-form-instruction {
+    color: var(--crm-text-muted);
+    font-size: 0.8125rem;
+}
+
+.required {
+    color: var(--crm-danger);
+}
+
+/* ---------------------------------------------------------------- forms -- */
+
+#kc-content,
+#kc-content-wrapper,
+#kc-form,
+#kc-form-wrapper {
+    width: 100%;
+    color: var(--crm-text);
+}
+
+.form-group,
+.pf-c-form__group {
+    margin: 0 0 1.15rem;
+}
+
+label,
+.control-label,
+.pf-c-form__label-text {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: var(--crm-text-muted);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0;
+}
+
+.form-control,
+.pf-c-form-control,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="number"],
+select,
+textarea {
+    width: 100%;
+    min-height: 3rem;
+    padding: 0.7rem 0.9rem;
+    color: var(--crm-text);
+    border: 1px solid var(--crm-hairline);
+    border-radius: var(--crm-radius);
+    background: var(--crm-glass-soft);
+    /* PatternFly paints the validation state as a background image. */
+    background-image: none;
+    box-shadow: none;
+    font: inherit;
+    /* No backdrop-filter here: the card already blurs, and a nested blur
+       samples the composited card instead of the page, which washes the
+       control out and makes sibling controls disagree with each other. */
+    transition:
+        background-color var(--crm-motion),
+        border-color var(--crm-motion);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--crm-text-muted);
+    opacity: 0.75;
+}
+
+.form-control:hover,
+.pf-c-form-control:hover,
+input:hover,
+select:hover,
+textarea:hover {
+    border-color: var(--crm-glass-border);
+}
+
+/*
+ * A selected field has no border at all: focus is signalled by the surface
+ * lifting, matching the portal.
+ */
+.form-control:focus,
+.pf-c-form-control:focus,
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: transparent;
+    outline: none;
+    background: var(--crm-glass-strong);
+    box-shadow: none;
+}
+
+input[aria-invalid="true"],
+.has-error .form-control,
+.has-error .pf-c-form-control,
+.pf-m-error .pf-c-form-control {
+    border-color: var(--crm-danger);
+}
+
+input[aria-invalid="true"]:focus,
+.has-error .form-control:focus,
+.pf-m-error .pf-c-form-control:focus {
+    border-color: transparent;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+    color: var(--crm-text-muted);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* The password field and its reveal button read as one control. */
+.pf-c-input-group,
+.input-group {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    gap: 0.5rem;
+    border: none;
+    background: none;
+}
+
+.pf-c-input-group > .pf-c-form-control,
+.input-group > .form-control {
+    flex: 1;
+    min-width: 0;
+}
+
+.pf-c-input-group .pf-c-button.pf-m-control,
+.input-group-btn .btn {
+    flex: none;
+    width: 3rem;
+    min-height: 3rem;
+    padding: 0;
+    color: var(--crm-text-muted);
+    border: 1px solid var(--crm-hairline);
+    border-radius: var(--crm-radius);
+    background: var(--crm-glass-soft);
+    box-shadow: none;
+}
+
+.pf-c-input-group .pf-c-button.pf-m-control:hover,
+.input-group-btn .btn:hover {
+    color: var(--crm-text);
+    background: var(--crm-glass-strong);
+}
+
+/* PatternFly draws its own underline/frame through a `::after` layer on form
+   controls and control buttons; the glass fields provide their own. */
+.pf-c-form-control::after,
+.pf-c-input-group .pf-c-button.pf-m-control::after,
+.pf-c-check__input::after {
+    display: none;
+    border: none;
+    content: none;
+}
+
+#input-error,
+.kc-feedback-text,
+.pf-c-form__helper-text.pf-m-error,
+.kcInputErrorMessageClass {
+    display: block;
+    margin-top: 0.4rem;
+    color: var(--crm-danger);
+    font-size: 0.8125rem;
+}
+
+.pf-c-form__helper-text {
+    margin-top: 0.4rem;
+    color: var(--crm-text-muted);
+    font-size: 0.8125rem;
+}
+
+/* remember-me and "forgot password" share one row */
+.login-pf-settings,
+#kc-form-options + .kcFormOptionsWrapperClass {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+#kc-form-options {
+    margin: 0;
+}
+
+.checkbox,
+.pf-c-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+}
+
+.checkbox label,
+.pf-c-check__label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    color: var(--crm-text);
+    font-size: 0.875rem;
+    font-weight: 400;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+    width: 1.05rem;
+    height: 1.05rem;
+    min-height: auto;
+    margin: 0;
+    padding: 0;
+    accent-color: var(--crm-accent);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+/* -------------------------------------------------------------- buttons -- */
+
+.btn,
+.pf-c-button,
+input[type="submit"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    padding: 0.6rem 1.25rem;
+    border: 1px solid transparent;
+    border-radius: var(--crm-pill);
+    background-image: none;
+    font: inherit;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    cursor: pointer;
+    transition:
+        background-color var(--crm-motion),
+        border-color var(--crm-motion),
+        transform var(--crm-motion),
+        box-shadow var(--crm-motion);
+}
+
+.btn:hover,
+.pf-c-button:hover,
+input[type="submit"]:hover {
+    transform: translateY(-1px);
+}
+
+.btn:active,
+.pf-c-button:active,
+input[type="submit"]:active {
+    transform: translateY(0);
+}
+
+.btn-primary,
+.pf-c-button.pf-m-primary,
+#kc-login,
+input[type="submit"] {
+    color: var(--crm-on-accent);
+    border-color: transparent;
+    background: var(--crm-accent);
+    box-shadow: 0 10px 24px -12px var(--crm-accent);
+}
+
+.btn-primary:hover,
+.pf-c-button.pf-m-primary:hover,
+#kc-login:hover,
+input[type="submit"]:hover {
+    color: var(--crm-on-accent);
+    background: var(--crm-accent-hover);
+    box-shadow: 0 16px 30px -12px var(--crm-accent);
+}
+
+.btn-default,
+.pf-c-button.pf-m-secondary {
+    color: var(--crm-text);
+    border-color: var(--crm-glass-border);
+    background: var(--crm-glass-soft);
+    backdrop-filter: var(--crm-blur);
+    -webkit-backdrop-filter: var(--crm-blur);
+}
+
+.btn-default:hover,
+.pf-c-button.pf-m-secondary:hover {
+    color: var(--crm-text);
+    border-color: var(--crm-accent);
+    background: var(--crm-glass);
+}
+
+.btn-block,
+.pf-m-block,
+#kc-login {
+    display: flex;
+    width: 100%;
+}
+
+#kc-form-buttons {
+    margin-top: 1.5rem;
+    margin-bottom: 0;
+}
+
+.btn:disabled,
+.pf-c-button:disabled,
+input[type="submit"]:disabled,
+.pf-m-disabled {
+    color: var(--crm-text-muted);
+    background: var(--crm-glass-strong);
+    box-shadow: none;
+    transform: none;
+    cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------- links -- */
+
+a,
+.link-button {
+    color: var(--crm-accent);
+    font-weight: 600;
+    text-decoration: none;
+    text-underline-offset: 3px;
+    transition: color var(--crm-motion);
+}
+
+a:hover,
+.link-button:hover {
+    color: var(--crm-accent-hover);
+    background: none;
+    text-decoration: underline;
+}
+
+:focus-visible {
+    outline: 2px solid var(--crm-accent);
+    outline-offset: 2px;
+    border-radius: var(--crm-radius);
+}
+
+/* Inputs opt out: their focus is the surface change, not an outline. */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: none;
+}
+
+/* --------------------------------------------------------------- alerts -- */
+
+.alert,
+.pf-c-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    margin: 0 0 1.25rem;
+    padding: 0.85rem 1rem;
+    color: var(--crm-text);
+    border: 1px solid var(--crm-hairline);
+    border-radius: 18px;
+    background: var(--crm-glass-soft);
+    box-shadow: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    backdrop-filter: var(--crm-blur);
+    -webkit-backdrop-filter: var(--crm-blur);
+}
+
+.alert-error,
+.alert-danger,
+.pf-c-alert.pf-m-danger {
+    border-color: color-mix(in srgb, var(--crm-danger) 35%, transparent);
+    background: color-mix(in srgb, var(--crm-danger) 9%, transparent);
+}
+
+.alert-success,
+.pf-c-alert.pf-m-success {
+    border-color: color-mix(in srgb, var(--crm-success) 35%, transparent);
+    background: color-mix(in srgb, var(--crm-success) 9%, transparent);
+}
+
+.alert-warning,
+.pf-c-alert.pf-m-warning {
+    border-color: color-mix(in srgb, var(--crm-warning) 35%, transparent);
+    background: color-mix(in srgb, var(--crm-warning) 9%, transparent);
+}
+
+.alert-info,
+.pf-c-alert.pf-m-info {
+    border-color: color-mix(in srgb, var(--crm-info) 35%, transparent);
+    background: color-mix(in srgb, var(--crm-info) 9%, transparent);
+}
+
+.alert-error .pf-c-alert__icon,
+.alert-danger .pf-c-alert__icon {
+    color: var(--crm-danger);
+}
+
+.alert-success .pf-c-alert__icon {
+    color: var(--crm-success);
+}
+
+.alert-warning .pf-c-alert__icon {
+    color: var(--crm-warning);
+}
+
+.alert-info .pf-c-alert__icon {
+    color: var(--crm-info);
+}
+
+.pf-c-alert__title,
+.pf-c-alert__description {
+    color: var(--crm-text);
+    font-weight: 500;
+}
+
+/* ----------------------------------------------- identity providers ------ */
+
+#kc-social-providers {
+    margin-top: 1.75rem;
+}
+
+#kc-social-providers hr,
+.pf-c-divider {
+    height: 1px;
+    margin: 0 0 1.25rem;
+    border: none;
+    background: var(--crm-hairline);
+}
+
+#kc-social-providers h2 {
+    margin: 0 0 0.9rem;
+    color: var(--crm-text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+#kc-social-providers ul {
+    display: grid;
+    gap: 0.6rem;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.kc-social-grid {
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+}
+
+#kc-social-providers .btn,
+#kc-social-providers .pf-c-button {
+    width: 100%;
+    gap: 0.5rem;
+    color: var(--crm-text);
+    border-color: var(--crm-glass-border);
+    background: var(--crm-glass-soft);
+}
+
+#kc-social-providers .btn:hover,
+#kc-social-providers .pf-c-button:hover {
+    border-color: var(--crm-accent);
+    background: var(--crm-glass);
+}
+
+/* --------------------------------------------------- registration note -- */
+
+/* PatternFly bleeds this area past the card edges and fills it with a grey
+   band; here it is just a quiet footnote inside the card. */
+#kc-info,
+.login-pf-signup {
+    width: 100%;
+    margin: 1.5rem 0 0;
+}
+
+#kc-info-wrapper {
+    padding: 1.25rem 0 0;
+    border-top: 1px solid var(--crm-hairline);
+    background: none;
+    background-color: transparent;
+    color: var(--crm-text-muted);
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+#kc-registration,
+#kc-registration-container {
+    margin: 0;
+}
+
+/* ------------------------------------------------------ locale switcher -- */
+
+/* PatternFly pins this to the card corner below 768px, where it lands on top
+   of the page title; here it always flows above the heading. */
+#kc-locale {
+    position: static;
+    display: flex;
+    width: auto;
+    justify-content: flex-end;
+    margin-bottom: 0.75rem;
+    text-align: right;
+}
+
+#kc-locale-dropdown {
+    position: relative;
+}
+
+#kc-locale-dropdown #kc-current-locale-link {
+    padding: 0.35rem 0.85rem;
+    color: var(--crm-text-muted);
+    border: 1px solid var(--crm-hairline);
+    border-radius: var(--crm-pill);
+    background: var(--crm-glass-soft);
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+#kc-locale-dropdown #kc-current-locale-link:hover {
+    color: var(--crm-text);
+    background: var(--crm-glass-strong);
+}
+
+#kc-locale-dropdown ul,
+.pf-c-dropdown__menu {
+    position: absolute;
+    right: 0;
+    z-index: 10;
+    min-width: 9rem;
+    padding: 0.35rem;
+    border: 1px solid var(--crm-glass-border);
+    border-radius: var(--crm-radius);
+    background: var(--crm-glass-strong);
+    box-shadow: var(--crm-shadow);
+    list-style: none;
+    backdrop-filter: var(--crm-blur);
+    -webkit-backdrop-filter: var(--crm-blur);
+}
+
+#kc-locale-dropdown a,
+.pf-c-dropdown__menu-item {
+    display: block;
+    padding: 0.5rem 0.7rem;
+    color: var(--crm-text);
+    border-radius: 10px;
+    background: none;
+    font-weight: 500;
+}
+
+#kc-locale-dropdown a:hover,
+.pf-c-dropdown__menu-item:hover {
+    color: var(--crm-text);
+    background: var(--crm-glass-soft);
+}
+
+/* ---------------------------------------------------------- responsive -- */
+
+@media (max-width: 560px) {
+    .login-pf-page {
+        padding: 1rem;
+        align-content: start;
+        padding-top: 2.5rem;
+    }
+
+    #kc-header {
+        margin-bottom: 1.25rem;
+    }
+
+    #kc-header-wrapper::before {
+        width: 3.75rem;
+        height: 3.75rem;
+    }
+
+    .card-pf,
+    .login-pf-page .card-pf {
+        padding: 1.35rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}

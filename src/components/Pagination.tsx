@@ -1,3 +1,7 @@
+import { Box, Button, Typography } from '@mui/material'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
+
 interface PaginationProps {
   page: number
   pageSize: number
@@ -23,36 +27,40 @@ export function Pagination({
   const canGoForward = page < totalPages
 
   return (
-    <nav className="pagination" aria-label="Pagination">
-      <p className="pagination__status" role="status">
+    <Box className="pagination" component="nav" aria-label="Pagination">
+      <Typography className="pagination__status" role="status" sx={{ fontSize: '0.8125rem' }}>
         {total === 0
           ? 'No requests to display'
           : `Showing ${first}–${last} of ${total} request${total === 1 ? '' : 's'}`}
-      </p>
+      </Typography>
 
-      <div className="pagination__controls">
-        <button
+      <Box className="pagination__controls">
+        <Button
           type="button"
-          className="button button--secondary"
+          variant="outlined"
+          size="small"
+          startIcon={<ArrowBackIcon />}
           onClick={() => onPageChange(page - 1)}
           disabled={!canGoBack || isBusy}
         >
-          <span aria-hidden="true">&#8592;</span> Previous
-        </button>
+          Previous
+        </Button>
 
-        <span className="pagination__status">
+        <Typography className="pagination__status" component="span" sx={{ fontSize: '0.8125rem' }}>
           Page {page} of {Math.max(totalPages, 1)}
-        </span>
+        </Typography>
 
-        <button
+        <Button
           type="button"
-          className="button button--secondary"
+          variant="outlined"
+          size="small"
+          endIcon={<ArrowForwardIcon />}
           onClick={() => onPageChange(page + 1)}
           disabled={!canGoForward || isBusy}
         >
-          Next <span aria-hidden="true">&#8594;</span>
-        </button>
-      </div>
-    </nav>
+          Next
+        </Button>
+      </Box>
+    </Box>
   )
 }

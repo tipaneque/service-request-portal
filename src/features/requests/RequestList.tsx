@@ -1,4 +1,16 @@
 import { Link } from 'react-router-dom'
+import {
+  Box,
+  Paper,
+  Skeleton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+} from '@mui/material'
+import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import type { ServiceRequest } from '@/api/types'
 import { PriorityBadge, StatusBadge } from '@/components/Badges'
 import { formatDateTime, formatRelative } from '@/lib/format'
@@ -18,54 +30,75 @@ export function RequestList({ requests }: RequestListProps) {
   return (
     <>
       <div className="request-list--table">
-        <div className="table-wrapper">
-          <table className="request-table">
+        <TableContainer className="table-wrapper" component={Paper} elevation={0}>
+          <Table className="request-table">
             <caption className="visually-hidden">
               Service requests matching the current filters
             </caption>
-            <thead>
-              <tr>
-                <th scope="col">ID</th>
-                <th scope="col">Title</th>
-                <th scope="col">Category</th>
-                <th scope="col">Priority</th>
-                <th scope="col">Status</th>
-                <th scope="col">Created</th>
-              </tr>
-            </thead>
-            <tbody>
+            <TableHead>
+              <TableRow>
+                <TableCell component="th" scope="col">
+                  ID
+                </TableCell>
+                <TableCell component="th" scope="col">
+                  Title
+                </TableCell>
+                <TableCell component="th" scope="col">
+                  Category
+                </TableCell>
+                <TableCell component="th" scope="col">
+                  Priority
+                </TableCell>
+                <TableCell component="th" scope="col">
+                  Status
+                </TableCell>
+                <TableCell component="th" scope="col">
+                  Created
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
               {requests.map((request) => (
-                <tr key={request.id}>
-                  <td className="request-table__id">{request.id}</td>
-                  <td>
+                <TableRow key={request.id} hover>
+                  <TableCell className="request-table__id">{request.id}</TableCell>
+                  <TableCell sx={{ minWidth: 260 }}>
                     <Link className="request-table__title" to={`/requests/${request.id}`}>
                       {request.title}
                     </Link>
                     <span className="request-table__requester">{request.requesterName}</span>
-                  </td>
-                  <td>{request.category}</td>
-                  <td>
+                  </TableCell>
+                  <TableCell>{request.category}</TableCell>
+                  <TableCell>
                     <PriorityBadge priority={request.priority} />
-                  </td>
-                  <td>
+                  </TableCell>
+                  <TableCell>
                     <StatusBadge status={request.status} />
-                  </td>
-                  <td className="request-table__date">
+                  </TableCell>
+                  <TableCell className="request-table__date">
                     <time dateTime={request.createdAt} title={formatDateTime(request.createdAt)}>
                       {formatRelative(request.createdAt)}
                     </time>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableContainer>
       </div>
 
-      <ul className="request-list--cards" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+      <Box component="ul" className="request-list--cards">
         {requests.map((request) => (
           <li key={request.id}>
-            <Link className="request-card" to={`/requests/${request.id}`}>
+            <Paper
+              className="request-card"
+              component={Link}
+              elevation={0}
+              to={`/requests/${request.id}`}
+              sx={{
+                borderRadius: 'var(--radius-lg)',
+                '&:hover': { transform: 'translateY(-2px)', boxShadow: 'var(--shadow-lifted)' },
+              }}
+            >
               <div className="request-card__top">
                 <span className="request-table__id">{request.id}</span>
                 <StatusBadge status={request.status} />
@@ -79,14 +112,16 @@ export function RequestList({ requests }: RequestListProps) {
                 <PriorityBadge priority={request.priority} />
               </div>
               <p className="request-card__meta">
-                <time dateTime={request.createdAt}>
-                  Created {formatDateTime(request.createdAt)}
-                </time>
+                <time dateTime={request.createdAt}>Created {formatDateTime(request.createdAt)}</time>
+                <ChevronRightIcon
+                  aria-hidden
+                  sx={{ fontSize: 18, ml: 'auto', color: 'text.secondary' }}
+                />
               </p>
-            </Link>
+            </Paper>
           </li>
         ))}
-      </ul>
+      </Box>
     </>
   )
 }
@@ -94,10 +129,10 @@ export function RequestList({ requests }: RequestListProps) {
 /** Placeholder rows shown while the first page is loading. */
 export function RequestListSkeleton({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="stack stack--tight" style={{ padding: 'var(--space-4)' }} aria-hidden="true">
+    <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 1.5 }} aria-hidden="true">
       {Array.from({ length: rows }, (_, index) => (
-        <div key={index} className="skeleton" style={{ height: '3.25rem' }} />
+        <Skeleton key={index} height={52} variant="rounded" sx={{ borderRadius: 3 }} />
       ))}
-    </div>
+    </Box>
   )
 }
