@@ -1,7 +1,7 @@
 /**
  * Domain aliases over the auto-generated OpenAPI types.
  *
- * `schema.ts` is generated from `openapi/service-requests.openapi.yaml` by
+ * `schema.ts` is generated from `openapi/frontend-challenge-api.openapi.yaml` by
  * `npm run generate:api` and is never edited by hand. Everything the app uses
  * is re-exported from here so that a contract change surfaces as a type error
  * in one place instead of scattering `components['schemas'][...]` lookups

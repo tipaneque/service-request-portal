@@ -7,13 +7,6 @@ tags:
   - name: Service Requests
     description: Create, browse and progress customer service requests.
 
-# Every operation requires an authenticated caller: each one documents `401`
-# and `403`, and the API expects an OAuth 2.0 bearer token. Declaring it here
-# rather than per-operation keeps a single source of truth, and means a client
-# generated from this document is authenticated by default.
-security:
-  - oidc: []
-
 paths:
   /requests:
     get:
@@ -290,18 +283,6 @@ paths:
           $ref: '#/components/responses/InternalServerError'
 
 components:
-  securitySchemes:
-    oidc:
-      type: openIdConnect
-      description: |
-        OpenID Connect. Browser clients use the Authorization Code flow with
-        PKCE as public clients - no client secret - and send the resulting
-        access token as `Authorization: Bearer <token>`.
-
-        `openIdConnectUrl` is environment-specific: point it at the discovery
-        document of the realm this deployment authenticates against.
-      openIdConnectUrl: https://identity.example.com/.well-known/openid-configuration
-
   parameters:
     RequestId:
       name: requestId

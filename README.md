@@ -3,7 +3,7 @@
 A web portal for viewing, creating, and managing customer service requests. It
 is a React single-page application that authenticates through OpenID Connect
 and follows the API contract in
-[`openapi/service-requests.openapi.yaml`](openapi/service-requests.openapi.yaml).
+[`openapi/frontend-challenge-api.openapi.yaml`](openapi/frontend-challenge-api.openapi.yaml).
 
 The repository also includes a complete mock API for local development and a
 Keycloak login theme built with Keycloakify.

@@ -1,5 +1,5 @@
 /**
- * MSW request handlers implementing `openapi/service-requests.openapi.yaml`.
+ * MSW request handlers implementing `openapi/frontend-challenge-api.openapi.yaml`.
  *
  * Error responses are returned as `application/problem+json` documents with the
  * same shape as the contract, so the UI's error handling is exercised for real
