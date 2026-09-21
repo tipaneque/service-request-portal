@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { Spinner } from '@/components/Spinner'
+import { AuthTransition } from './AuthTransition'
 import { useAuth } from './AuthContext'
 
 /**
@@ -15,12 +15,7 @@ export function RequireAuth() {
   const location = useLocation()
 
   if (isLoading) {
-    return (
-      <div className="route-fallback">
-        <Spinner size="large" label="Checking your session" />
-        <p>Checking your session&hellip;</p>
-      </div>
-    )
+    return <AuthTransition />
   }
 
   if (!isAuthenticated) {

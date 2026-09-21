@@ -1,21 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { Box, Button, Paper, Typography } from "@mui/material";
-import RefreshIcon from "@mui/icons-material/Refresh";
+import LoginIcon from "@mui/icons-material/Login";
 import { useAuth } from "@/auth/AuthContext";
 import { Alert } from "@/components/Alert";
-import { Spinner } from "@/components/Spinner";
 import { IMAGES } from "@/lib/assets";
 
 interface LocationState {
   from?: { pathname?: string; search?: string };
 }
 
-/** Starts authentication immediately; there is no redundant sign-in button. */
+/** Entry screen that lets the visitor explicitly continue to the OIDC provider. */
 export function SignInPage() {
   const { isAuthenticated, isLoading, error, signIn } = useAuth();
   const location = useLocation();
-  const startedRef = useRef(false);
   const [redirectError, setRedirectError] = useState<Error | null>(null);
 
   const state = location.state as LocationState | null;
@@ -33,12 +31,6 @@ export function SignInPage() {
       );
     }
   }, [returnTo, signIn]);
-
-  useEffect(() => {
-    if (isAuthenticated || isLoading || error || startedRef.current) return;
-    startedRef.current = true;
-    void beginSignIn();
-  }, [beginSignIn, error, isAuthenticated, isLoading]);
 
   if (isAuthenticated) return <Navigate to={returnTo} replace />;
 
@@ -63,37 +55,32 @@ export function SignInPage() {
           sx={{ width: 64, height: 64, objectFit: "contain", mb: 2 }}
         />
 
-        {failure ? (
-          <Alert
-            tone="error"
-            title="Sign-in failed"
-            actions={
-              <Button
-                type="button"
-                variant="contained"
-                startIcon={<RefreshIcon />}
-                onClick={() => {
-                  startedRef.current = true;
-                  void beginSignIn();
-                }}
-              >
-                Try again
-              </Button>
-            }
-          >
-            <p>{failure.message}</p>
-          </Alert>
-        ) : (
-          <Box role="status" aria-live="polite">
-            <Spinner size="large" label={null} />
-            <Typography component="h1" variant="h4" sx={{ mt: 2, mb: 0.5 }}>
-              Redirecting to sign-in
-            </Typography>
-            <Typography color="text.secondary">
-              Preparing your organisation authentication…
-            </Typography>
+        <Typography component="h1" variant="h4" sx={{ mb: 1 }}>
+          Customer Requests Manager
+        </Typography>
+        <Typography color="text.secondary" sx={{ mb: 3 }}>
+          Use your organisation account to access the service request portal.
+        </Typography>
+
+        {failure && (
+          <Box sx={{ mb: 2, textAlign: "left" }}>
+            <Alert tone="error" title="Sign-in could not be started">
+              <p>{failure.message}</p>
+            </Alert>
           </Box>
         )}
+
+        <Button
+          type="button"
+          variant="contained"
+          size="large"
+          fullWidth
+          startIcon={<LoginIcon />}
+          disabled={isLoading}
+          onClick={() => void beginSignIn()}
+        >
+          {isLoading ? "Opening sign-in…" : failure ? "Try again" : "Continue to sign in"}
+        </Button>
       </Paper>
     </main>
   );

@@ -1,4 +1,5 @@
-import { render, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { AuthContext } from "@/auth/AuthContext";
@@ -7,6 +8,7 @@ import { SignInPage } from "./SignInPage";
 
 describe("SignInPage", () => {
   it("passes the originally requested route into the sign-in flow", async () => {
+    const user = userEvent.setup();
     const signIn = vi.fn(async () => {});
     const auth: AuthContextValue = {
       isAuthenticated: false,
@@ -33,6 +35,9 @@ describe("SignInPage", () => {
         </AuthContext.Provider>
       </MemoryRouter>,
     );
+
+    expect(signIn).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Continue to sign in" }));
 
     await waitFor(() => {
       expect(signIn).toHaveBeenCalledTimes(1);
