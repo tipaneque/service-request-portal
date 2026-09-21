@@ -5,14 +5,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import { useAuth } from '@/auth/AuthContext'
 import { Alert } from '@/components/Alert'
 import { Spinner } from '@/components/Spinner'
-
-/**
- * Landing page for the OIDC redirect URI.
- *
- * `react-oidc-context` exchanges the authorization code for tokens as soon as
- * it sees `code`/`state` in the URL; this screen only reports progress and then
- * forwards the user into the application.
- */
+ 
 export function AuthCallbackPage() {
   const { isAuthenticated, isLoading, error } = useAuth()
   const navigate = useNavigate()
