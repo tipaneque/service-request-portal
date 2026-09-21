@@ -21,7 +21,6 @@
   --radius-sm: 12px;
   --radius-md: 16px;
   --radius-lg: 22px;
-  --radius-xl: 28px;
   --radius-pill: 999px;
 
   /* The platform runs edge to edge; only the gutters keep content off the rim. */
@@ -44,8 +43,6 @@
   --text: #161b33;
   --text-muted: #5a6484;
   --accent: #5b56e0;
-  --accent-2: #0891b2;
-  --accent-contrast: #ffffff;
 }
 
 /* ---------------------------------------------------------------- reset -- */

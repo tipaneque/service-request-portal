@@ -28,7 +28,7 @@ import type {
   UpdateServiceRequestStatus,
 } from './types'
 
-export const serviceRequestKeys = {
+const serviceRequestKeys = {
   all: ['service-requests'] as const,
   lists: () => [...serviceRequestKeys.all, 'list'] as const,
   list: (query: ListServiceRequestsQuery) => [...serviceRequestKeys.lists(), query] as const,
@@ -73,7 +73,7 @@ export function useCreateServiceRequest(): UseMutationResult<
   })
 }
 
-export interface UpdateStatusVariables extends UpdateServiceRequestStatus {
+interface UpdateStatusVariables extends UpdateServiceRequestStatus {
   requestId: string
 }
 

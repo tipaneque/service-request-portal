@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Alert as MuiAlert, AlertTitle, Box } from '@mui/material'
 import { ApiError } from '@/api/ApiError'
 
-export type AlertTone = 'error' | 'success' | 'warning' | 'info'
+type AlertTone = 'error' | 'success' | 'warning' | 'info'
 
 interface AlertProps {
   tone?: AlertTone

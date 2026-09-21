@@ -40,10 +40,6 @@ export function resetDb(): void {
   nextId = 1001 + requests.length
 }
 
-export function allRequests(): ServiceRequest[] {
-  return requests
-}
-
 export function findRequest(id: string): ServiceRequest | undefined {
   return requests.find((request) => request.id === id)
 }
@@ -116,7 +112,7 @@ export function insertRequest(input: CreateServiceRequest): ServiceRequest {
   return created
 }
 
-export type StatusUpdateResult =
+type StatusUpdateResult =
   | { ok: true; request: ServiceRequest }
   | { ok: false; reason: 'not-found' }
   | { ok: false; reason: 'conflict'; currentVersion: number }

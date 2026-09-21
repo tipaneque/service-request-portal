@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { formatDate, formatDateTime, formatRelative } from './format'
+import { formatDateTime, formatRelative } from './format'
 
 describe('date formatting', () => {
   const iso = '2026-02-12T09:00:00Z'
 
   it('renders an absolute timestamp', () => {
     expect(formatDateTime(iso)).toMatch(/2026/)
-    expect(formatDate(iso)).toMatch(/2026/)
   })
 
   // Wording comes from `Intl.RelativeTimeFormat` in the viewer's locale, which
@@ -27,7 +26,6 @@ describe('date formatting', () => {
 
   it('passes a malformed value through untouched rather than showing "Invalid Date"', () => {
     expect(formatDateTime('not-a-date')).toBe('not-a-date')
-    expect(formatDate('not-a-date')).toBe('not-a-date')
     expect(formatRelative('not-a-date')).toBe('not-a-date')
   })
 })

@@ -60,5 +60,3 @@ export const env = {
     raw.VITE_AUTH_MODE === 'mock' &&
     !raw.VITE_ALLOW_MOCK_AUTH_IN_PRODUCTION,
 } as const
-
-export type Env = typeof env

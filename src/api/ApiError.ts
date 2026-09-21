@@ -1,6 +1,6 @@
 import type { ProblemDetails, ValidationProblemDetails } from './types'
 
-export type FieldErrors = Record<string, string[]>
+type FieldErrors = Record<string, string[]>
 
 /**
  * Normalised transport/API failure.
@@ -24,16 +24,6 @@ export class ApiError extends Error {
     this.traceId = typeof problem?.traceId === 'string' ? problem.traceId : undefined
   }
 
-  /** Authentication missing/expired - the session must be renewed. */
-  get isUnauthorized(): boolean {
-    return this.status === 401
-  }
-
-  /** Token is valid but lacks the required scope. */
-  get isForbidden(): boolean {
-    return this.status === 403
-  }
-
   get isNotFound(): boolean {
     return this.status === 404
   }
@@ -41,10 +31,6 @@ export class ApiError extends Error {
   /** Optimistic-concurrency clash: the record changed under us. */
   get isConflict(): boolean {
     return this.status === 409
-  }
-
-  get isValidation(): boolean {
-    return this.status === 422 || this.status === 400
   }
 
   /** Network failures and 5xx are worth retrying; 4xx are not. */
@@ -74,8 +60,4 @@ function extractFieldErrors(problem: ProblemDetails | undefined): FieldErrors | 
     }
   }
   return Object.keys(result).length > 0 ? result : undefined
-}
-
-export function isApiError(error: unknown): error is ApiError {
-  return error instanceof ApiError
 }

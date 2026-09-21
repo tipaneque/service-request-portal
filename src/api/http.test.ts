@@ -79,7 +79,6 @@ describe('apiFetch', () => {
     expect(error).toBeInstanceOf(ApiError)
     const apiError = error as ApiError
     expect(apiError.status).toBe(403)
-    expect(apiError.isForbidden).toBe(true)
     expect(apiError.title).toBe('Forbidden')
     expect(apiError.detail).toBe("Scope 'service-requests.write' is required.")
     expect(apiError.traceId).toBe('abc123')
@@ -102,7 +101,6 @@ describe('apiFetch', () => {
 
     const error = (await listServiceRequests({}).catch((cause: unknown) => cause)) as ApiError
 
-    expect(error.isValidation).toBe(true)
     expect(error.fieldErrors).toEqual({ title: ['Title must be at least 3 characters long.'] })
   })
 

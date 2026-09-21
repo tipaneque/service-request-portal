@@ -12,10 +12,6 @@ export function signIn(): void {
   window.sessionStorage.setItem(MOCK_SESSION_KEY, 'active')
 }
 
-export function signOut(): void {
-  window.sessionStorage.removeItem(MOCK_SESSION_KEY)
-}
-
 function createTestQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
@@ -59,7 +55,7 @@ export function renderWithProviders(
     )
   }
 
-  const result = render(path ? <Routes>{<Route path={path} element={ui} />}</Routes> : ui, {
+  const result = render(path ? <Routes><Route path={path} element={ui} /></Routes> : ui, {
     wrapper: Wrapper,
   })
 

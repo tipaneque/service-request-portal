@@ -32,9 +32,9 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler): void {
   onUnauthorized = handler
 }
 
-export type QueryValue = string | number | boolean | undefined | null
+type QueryValue = string | number | boolean | undefined | null
 
-export interface RequestOptions {
+interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
   path: string
   query?: Record<string, QueryValue>
