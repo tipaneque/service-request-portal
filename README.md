@@ -37,27 +37,16 @@ document to keep the frontend aligned with the contract.
 
 ## Architecture summary
 
-```text
-src/
-├── api/          HTTP client, generated types, and queries
-├── app/          router and application-wide configuration
-├── auth/         OIDC, mock authentication, and route protection
-├── components/   reusable UI components
-├── config/       environment parsing and validation
-├── domain/       business vocabulary and rules
-├── features/     service-request screens and components
-├── mocks/        MSW handlers and in-memory data
-├── pages/        sign-in, callback, and 404 pages
-├── styles/       MUI theme and global styles
-└── test/         test setup and helpers
+Most of the application lives under `src`. Code is grouped by responsibility:
+shared API and authentication logic is kept separate from the request screens,
+reusable components, styles, mocks, and test helpers. The OpenAPI contract has
+its own top-level directory, and the Keycloak theme is an independent package
+under `keycloak-theme`.
 
-keycloak-theme/   independent Keycloakify package
-openapi/          Service Request API contract
-```
-
-Components do not call `fetch` directly. Data access goes through the `api`
+Components do not call `fetch` directly. They use the query hooks from the API
 layer, while authentication is exposed through a provider-independent context.
-This keeps the UI decoupled from both the transport and Keycloak.
+This keeps the UI independent from the transport and makes it possible to swap
+the mock login for Keycloak without changing the screens.
 
 ## Local setup
 
@@ -119,18 +108,14 @@ details.
 Copy [`.env.example`](.env.example) to `.env.local` and change only what your
 environment requires.
 
-| Variable | Purpose |
-| --- | --- |
-| `VITE_API_BASE_URL` | API base URL. Defaults to `/api`. |
-| `VITE_ENABLE_API_MOCKS` | Enables or disables the mock API. |
-| `VITE_AUTH_MODE` | Selects `mock` or `oidc` authentication. |
-| `VITE_ALLOW_MOCK_AUTH_IN_PRODUCTION` | Allows mock auth in a published demo; never use it for a real deployment. |
-| `VITE_OIDC_AUTHORITY` | OIDC issuer or realm URL. Required in `oidc` mode. |
-| `VITE_OIDC_CLIENT_ID` | Public OIDC client identifier. |
-| `VITE_OIDC_REDIRECT_URI` | Return address after sign-in. |
-| `VITE_OIDC_POST_LOGOUT_REDIRECT_URI` | Return address after sign-out. |
-| `VITE_OIDC_SCOPE` | Scopes requested during sign-in. |
-| `VITE_OIDC_AUDIENCE` | Optional audience used by providers such as Auth0. |
+The API is configured with `VITE_API_BASE_URL` and
+`VITE_ENABLE_API_MOCKS`. Authentication uses `VITE_AUTH_MODE`,
+`VITE_OIDC_AUTHORITY`, `VITE_OIDC_CLIENT_ID`, `VITE_OIDC_REDIRECT_URI`,
+`VITE_OIDC_POST_LOGOUT_REDIRECT_URI`, and `VITE_OIDC_SCOPE`. Providers such as
+Auth0 may also need `VITE_OIDC_AUDIENCE`.
+
+`VITE_ALLOW_MOCK_AUTH_IN_PRODUCTION` exists only for a deliberately published
+demo. It should remain disabled in a real environment.
 
 The example file contains no real credentials. Local `.env` files are ignored
 by Git and must not be committed.
@@ -149,21 +134,24 @@ Set `VITE_ENABLE_API_MOCKS=false` to use a real API.
 
 ## Development, lint, test, and build commands
 
-| Command | Description |
-| --- | --- |
-| `npm run dev` | Start the development server. |
-| `npm run lint` | Run ESLint. |
-| `npm run typecheck` | Check types without emitting files. |
-| `npm run test` | Run the test suite once. |
-| `npm run test:watch` | Run tests in watch mode. |
-| `npm run test:coverage` | Generate the coverage report. |
-| `npm run build` | Create the production portal in `dist/`. |
-| `npm run preview` | Serve the production build locally. |
-| `npm run generate:api` | Regenerate types from the OpenAPI document. |
-| `npm run theme:lint` | Lint the Keycloak theme. |
-| `npm run theme:typecheck` | Typecheck the theme. |
-| `npm run theme:storybook` | Preview login states in Storybook. |
-| `npm run theme:build` | Build the Keycloak theme JARs. |
+For everyday development, these are the main commands:
+
+```bash
+npm run dev
+npm run lint
+npm run typecheck
+npm run test
+npm run test:coverage
+npm run build
+```
+
+`npm run test:watch` keeps the test runner open, while `npm run preview` serves
+the production build locally. If the OpenAPI document changes, run
+`npm run generate:api` to regenerate the TypeScript definitions.
+
+The theme has its own `theme:lint`, `theme:typecheck`, `theme:storybook`, and
+`theme:build` commands. The last one produces the JARs that can be installed in
+Keycloak.
 
 ## Testing strategy
 
