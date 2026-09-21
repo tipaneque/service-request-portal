@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest'
-import { afterAll, afterEach, beforeAll, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, expect, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
+import { toHaveNoViolations } from 'jest-axe'
 import { resetDb } from './src/mocks/db'
 import { server } from './src/mocks/server'
 
@@ -16,6 +17,9 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: vi.fn(),
   })),
 })
+
+// Lets any test assert `expect(await axe(container)).toHaveNoViolations()`.
+expect.extend(toHaveNoViolations)
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 

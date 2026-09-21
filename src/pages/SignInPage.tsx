@@ -1,39 +1,48 @@
-import { useState } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
-import { Box, Button, Paper, Typography } from '@mui/material'
-import LoginIcon from '@mui/icons-material/Login'
-import { useAuth } from '@/auth/AuthContext'
-import { Alert } from '@/components/Alert'
-import { Spinner } from '@/components/Spinner'
-import { env } from '@/config/env'
-import { IMAGES } from '@/lib/assets'
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { Box, Button, Paper, Typography } from "@mui/material";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import { useAuth } from "@/auth/AuthContext";
+import { Alert } from "@/components/Alert";
+import { Spinner } from "@/components/Spinner";
+import { IMAGES } from "@/lib/assets";
 
 interface LocationState {
-  from?: { pathname?: string; search?: string }
+  from?: { pathname?: string; search?: string };
 }
 
+/** Starts authentication immediately; there is no redundant sign-in button. */
 export function SignInPage() {
-  const { isAuthenticated, isLoading, error, signIn } = useAuth()
-  const location = useLocation()
-  const [redirectError, setRedirectError] = useState<Error | null>(null)
+  const { isAuthenticated, isLoading, error, signIn } = useAuth();
+  const location = useLocation();
+  const startedRef = useRef(false);
+  const [redirectError, setRedirectError] = useState<Error | null>(null);
 
-  const state = location.state as LocationState | null
+  const state = location.state as LocationState | null;
   const returnTo = state?.from
-    ? `${state.from.pathname ?? '/requests'}${state.from.search ?? ''}`
-    : '/requests'
+    ? `${state.from.pathname ?? "/requests"}${state.from.search ?? ""}`
+    : "/requests";
 
-  if (isAuthenticated) return <Navigate to={returnTo} replace />
-
-  const handleSignIn = async () => {
-    setRedirectError(null)
+  const beginSignIn = useCallback(async () => {
+    setRedirectError(null);
     try {
-      await signIn(returnTo)
+      await signIn(returnTo);
     } catch (cause) {
-      setRedirectError(cause instanceof Error ? cause : new Error('Sign-in failed.'))
+      setRedirectError(
+        cause instanceof Error ? cause : new Error("Sign-in failed."),
+      );
     }
-  }
+  }, [returnTo, signIn]);
 
-  const failure = error ?? redirectError
+  useEffect(() => {
+    if (isAuthenticated || isLoading || error || startedRef.current) return;
+    startedRef.current = true;
+    void beginSignIn();
+  }, [beginSignIn, error, isAuthenticated, isLoading]);
+
+  if (isAuthenticated) return <Navigate to={returnTo} replace />;
+
+  const failure = error ?? redirectError;
 
   return (
     <main className="signin">
@@ -41,76 +50,51 @@ export function SignInPage() {
         className="signin__card"
         elevation={0}
         sx={{
-          width: '100%',
-          maxWidth: '26rem',
-          p: { xs: 3, sm: 5 },
-          textAlign: 'center',
-          boxShadow: 'var(--shadow-lifted)',
+          width: "100%",
+          maxWidth: "24rem",
+          p: { xs: 3, sm: 4 },
+          textAlign: "center",
         }}
       >
         <Box
-          className="signin__mark"
-          sx={{
-            display: 'grid',
-            placeItems: 'center',
-            width: 76,
-            height: 76,
-            p: 1,
-            mx: 'auto',
-            mb: 3,
-            borderRadius: 'var(--radius-lg)',
-            backgroundColor: '#ffffff',
-            border: '1px solid var(--hairline)',
-          }}
-        >
-          <Box
-            component="img"
-            src={IMAGES.logo}
-            alt=""
-            sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
-          />
-        </Box>
-        <Typography
-          className="signin__title"
-          component="h1"
-          variant="h4"
-          sx={{ letterSpacing: '-0.03em', mb: 1 }}
-        >
-          Service Request Portal
-        </Typography>
-        <Typography className="signin__description" sx={{ color: 'text.secondary', mb: 3 }}>
-          Sign in with your organisation account to review and manage customer service requests.
-        </Typography>
+          component="img"
+          src={IMAGES.logo}
+          alt=""
+          sx={{ width: 64, height: 64, objectFit: "contain", mb: 2 }}
+        />
 
         {failure ? (
-          <Box sx={{ mb: 3, textAlign: 'left' }}>
-            <Alert tone="error" title="Sign-in failed">
-              <p>{failure.message}</p>
-            </Alert>
+          <Alert
+            tone="error"
+            title="Sign-in failed"
+            actions={
+              <Button
+                type="button"
+                variant="contained"
+                startIcon={<RefreshIcon />}
+                onClick={() => {
+                  startedRef.current = true;
+                  void beginSignIn();
+                }}
+              >
+                Try again
+              </Button>
+            }
+          >
+            <p>{failure.message}</p>
+          </Alert>
+        ) : (
+          <Box role="status" aria-live="polite">
+            <Spinner size="large" label={null} />
+            <Typography component="h1" variant="h4" sx={{ mt: 2, mb: 0.5 }}>
+              Redirecting to sign-in
+            </Typography>
+            <Typography color="text.secondary">
+              Preparing your organisation authentication…
+            </Typography>
           </Box>
-        ) : null}
-
-        <Button
-          type="button"
-          variant="contained"
-          size="large"
-          fullWidth
-          startIcon={isLoading ? <Spinner label={null} /> : <LoginIcon />}
-          onClick={() => void handleSignIn()}
-          disabled={isLoading}
-        >
-          {isLoading ? 'Signing in…' : 'Sign in'}
-        </Button>
-
-        <Typography
-          className="signin__note"
-          sx={{ mt: 2, fontSize: '0.75rem', color: 'text.secondary' }}
-        >
-          {env.auth.mode === 'mock'
-            ? 'Development mode: a local demo session is used instead of a real identity provider.'
-            : 'You will be redirected to your identity provider to authenticate.'}
-        </Typography>
+        )}
       </Paper>
     </main>
-  )
+  );
 }

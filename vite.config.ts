@@ -47,6 +47,14 @@ export default defineConfig({
         'src/api/schema.ts',
         'src/test/**',
       ],
+      // A ratchet, not a target: set just under what the suite covers today so
+      // the build fails when coverage slips, without demanding a round number.
+      thresholds: {
+        statements: 80,
+        branches: 70,
+        functions: 80,
+        lines: 82,
+      },
     },
   },
 })

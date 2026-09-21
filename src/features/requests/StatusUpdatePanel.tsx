@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Box, Button, TextField, Typography } from '@mui/material'
+import { Box, Button, TextField } from '@mui/material'
 import { useUpdateServiceRequestStatus } from '@/api/queries'
 import { type ServiceRequest, type ServiceRequestStatus } from '@/api/types'
 import { ALLOWED_TRANSITIONS, STATUS_LABELS, isTerminal } from '@/domain/serviceRequests'

@@ -28,6 +28,15 @@ function rows(): HTMLElement[] {
   return within(screen.getByRole('table')).getAllByRole('row')
 }
 
+/*
+ * Searching waits on a 350ms debounce, a mocked round trip and a re-render.
+ * Five seconds covered that on an idle machine but not on a loaded one, which
+ * made these the flakiest assertions in the suite. The budget is sized for the
+ * slow case now, and still sits inside the 15s test timeout, so a search that
+ * is genuinely broken fails - just later.
+ */
+const SEARCH_TIMEOUT = { timeout: 10_000 }
+
 /**
  * The filter bar keeps the search field collapsed behind its icon, so a test
  * that wants to type has to summon it first.
@@ -76,12 +85,9 @@ describe('RequestListPage', () => {
 
     await user.type(await openSearch(user), 'invoice')
 
-    await waitFor(
-      () => {
-        expect(screen.getByText(/of 2 requests/i)).toBeInTheDocument()
-      },
-      { timeout: 5000 },
-    )
+    await waitFor(() => {
+      expect(screen.getByText(/of 2 requests/i)).toBeInTheDocument()
+    }, SEARCH_TIMEOUT)
 
     expect(
       within(screen.getByRole('table')).getByText('Duplicate invoice on February statement'),
@@ -93,12 +99,9 @@ describe('RequestListPage', () => {
 
     await user.type(await openSearch(user), 'Ana Costa')
 
-    await waitFor(
-      () => {
-        expect(screen.getByText(/of 1 request\b/i)).toBeInTheDocument()
-      },
-      { timeout: 5000 },
-    )
+    await waitFor(() => {
+      expect(screen.getByText(/of 1 request\b/i)).toBeInTheDocument()
+    }, SEARCH_TIMEOUT)
 
     expect(
       within(screen.getByRole('table')).getByText('Mobile app crashes on the orders screen'),
@@ -153,7 +156,7 @@ describe('RequestListPage', () => {
     await user.type(await openSearch(user), 'zzzzz-no-such-request')
 
     expect(
-      await screen.findByText(/No requests match these filters/i, {}, { timeout: 5000 }),
+      await screen.findByText(/No requests match these filters/i, {}, SEARCH_TIMEOUT),
     ).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /Clear filters/i }))

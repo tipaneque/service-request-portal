@@ -2,8 +2,7 @@
  * Liquid-glass foundation.
  *
  * Colour tokens are published by the MUI theme onto `:root` (see
- * `src/styles/theme.ts`), so everything here follows the active colour mode
- * automatically. This file owns two things only: the reset, and the layout
+ * `src/styles/theme.ts`). This file owns two things only: the reset and layout
  * primitives that are cheaper to express in CSS than in `sx`.
  *
  * There are no gradients anywhere in the portal: every surface is either a
@@ -28,10 +27,11 @@
   /* The platform runs edge to edge; only the gutters keep content off the rim. */
   --content-width: 100%;
 
-  --font-mono: ui-monospace, sfmono-regular, 'SF Mono', consolas, 'Liberation Mono', monospace;
+  --font-mono: ui-monospace, sfmono-regular, "SF Mono", consolas,
+    "Liberation Mono", monospace;
 
   /* Fallbacks used before the theme mounts and inside plain-CSS previews. */
-  --canvas: #eef1fb;
+  --canvas: #ffffff;
   --glass: rgba(255, 255, 255, 0.7);
   --glass-strong: rgba(255, 255, 255, 0.85);
   --glass-soft: rgba(255, 255, 255, 0.45);
@@ -66,6 +66,7 @@ body {
   min-height: 100dvh;
   background-color: var(--canvas);
   color: var(--text);
+  font-family: "Manrope Variable", Manrope, system-ui, sans-serif;
   font-size: 0.9375rem;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -125,17 +126,13 @@ a {
 }
 
 /* Blur is expensive; drop to an opaque tint where the browser cannot do it. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
   :root {
     --glass: rgba(255, 255, 255, 0.92);
     --glass-strong: rgba(255, 255, 255, 0.96);
     --glass-soft: rgba(255, 255, 255, 0.85);
-  }
-
-  [data-mode='dark'] {
-    --glass: rgba(18, 23, 42, 0.94);
-    --glass-strong: rgba(24, 30, 52, 0.96);
-    --glass-soft: rgba(18, 23, 42, 0.88);
   }
 }
 
@@ -360,7 +357,7 @@ a {
 }
 
 .page-header__title {
-  font-size: clamp(1.6rem, 1.1rem + 2vw, 2.35rem);
+  font-size: clamp(1.4rem, 1.15rem + 1vw, 1.9rem);
   font-weight: 700;
   letter-spacing: -0.035em;
   color: var(--text);
@@ -466,7 +463,6 @@ a {
   color: var(--text-muted);
   margin-left: auto;
 }
-
 
 /* -------------------------------------------------------------- badges --- */
 
@@ -736,7 +732,7 @@ a {
   position: absolute;
   inset: 0;
   background: var(--scrim);
-  content: '';
+  content: "";
   pointer-events: none;
 }
 
