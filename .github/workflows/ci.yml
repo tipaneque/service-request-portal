@@ -103,7 +103,6 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: maven
 
       - name: Build Keycloak theme JARs
         if: matrix.node-version == '24.x'
