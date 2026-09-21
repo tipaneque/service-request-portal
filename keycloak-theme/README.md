@@ -1,21 +1,26 @@
 # Customer Requests Keycloak theme
 
-Pacote independente do tema de autenticação do **Customer Requests Manager**, construído com Keycloakify. O nome instalado no Keycloak é `customer-requests`.
+This is the standalone authentication theme for **Customer Requests Manager**,
+built with Keycloakify. It is installed in Keycloak under the name
+`customer-requests`.
 
-Os tokens em `src/login/theme.css` espelham os tokens do portal em `../src/styles/index.css`. Ao alterar cores, tipografia, raios ou sombras, mantenha os dois ficheiros sincronizados.
+The tokens in `src/login/theme.css` mirror the portal tokens in
+`../src/styles/index.css`. Keep both files in sync when changing colours,
+typography, border radii, or shadows.
 
-## Desenvolvimento
+## Development
 
 ```bash
 npm install
 npm run dev
-# ou, para testar estados diferentes:
+# To preview additional states:
 npm run storybook
 ```
 
-O servidor Vite mostra a página `login.ftl`. O Storybook inclui estados normal, credenciais inválidas e utilizador lembrado.
+The Vite server displays the `login.ftl` page. Storybook includes the default,
+invalid credentials, and remembered user states.
 
-## Validação e build
+## Validation and build
 
 ```bash
 npm run lint
@@ -23,13 +28,16 @@ npm run typecheck
 npm run build-keycloak-theme
 ```
 
-O último comando requer Java e Maven e cria os JARs em `dist_keycloak/`.
+The last command requires Java and Maven and creates the JARs in
+`dist_keycloak/`.
 
-## Instalação no Keycloak
+## Installing in Keycloak
 
-1. Copie para `<KEYCLOAK_HOME>/providers/` o JAR de `dist_keycloak/` compatível com a sua versão do Keycloak.
-2. Reinicie o Keycloak.
-3. No realm **Customer Requests Manager**, abra **Realm settings → Themes**.
-4. Seleccione `customer-requests` em **Login theme** e grave.
+1. Copy the JAR from `dist_keycloak/` that matches your Keycloak version to
+   `<KEYCLOAK_HOME>/providers/`.
+2. Restart Keycloak.
+3. Open **Realm settings → Themes** in the **Customer Requests Manager** realm.
+4. Select `customer-requests` under **Login theme** and save the changes.
 
-Em Docker, monte ou copie o JAR para `/opt/keycloak/providers/` antes de iniciar o servidor.
+When using Docker, mount or copy the JAR to `/opt/keycloak/providers/` before
+starting the server.
