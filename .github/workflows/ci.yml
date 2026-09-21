@@ -25,9 +25,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Current LTS plus the next line, so an upcoming Node release cannot
-        # break the build unnoticed.
-        node-version: [20.x, 22.x]
+        # Vitest 5 and jsdom 30 no longer support Node 20. Keep the oldest
+        # compatible Node 22 release explicit and also verify the current LTS.
+        node-version: [22.22.2, 24.x]
 
     steps:
       - name: Check out the repository
@@ -90,7 +90,7 @@ jobs:
 
       - name: Upload production build
         # Only one copy is needed; the Node version does not change the output.
-        if: matrix.node-version == '22.x'
+        if: matrix.node-version == '24.x'
         uses: actions/upload-artifact@v4
         with:
           name: dist
@@ -98,7 +98,7 @@ jobs:
           retention-days: 7
 
       - name: Set up Java for the Keycloak theme
-        if: matrix.node-version == '22.x'
+        if: matrix.node-version == '24.x'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -106,11 +106,11 @@ jobs:
           cache: maven
 
       - name: Build Keycloak theme JARs
-        if: matrix.node-version == '22.x'
+        if: matrix.node-version == '24.x'
         run: npm run theme:build
 
       - name: Upload Keycloak theme JARs
-        if: matrix.node-version == '22.x'
+        if: matrix.node-version == '24.x'
         uses: actions/upload-artifact@v4
         with:
           name: keycloak-theme

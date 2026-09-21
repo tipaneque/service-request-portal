@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Customer Service Request Portal - React + TypeScript SPA",
   "engines": {
-    "node": ">=20.19"
+    "node": ">=22.22.2"
   },
   "scripts": {
     "dev": "vite",
